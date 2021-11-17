@@ -1,0 +1,35 @@
+#!/usr/bin/env python3.9
+#Script Name pygraphizer
+#Description
+#: 
+
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import pprint
+
+pwd=os.getcwd()
+ps=pwd.split('/')
+ps.reverse()
+
+file_list=os.listdir(pwd+'/extracted_data')
+
+file_list=[ str(j)+':'+str(i) for i,j in zip(file_list, range(1,len(file_list)))]
+file_list2=file_list
+#print(file_list2)
+print(file_list2)
+
+while len(file_list2)!=0:
+	if len(file_list2)==3:
+		print('{%10s} {%10s} {%10s}'.format(file_list2[0],file_list2[1],file_list2[2]))
+		file_list2=file_list2[3:]
+	elif len(file_list2)==2:
+                print('{%10s} {%10s}'.format(file_list2[0],file_list2[1]))
+		file_list2=file_list2
+	elif len(file_list2)==1:
+                print('{%10s}'.format(file_list2[0]))
+		file_list2=file_list2[1:]
+
+
+#pprint.pprint(file_list)
+

@@ -1,0 +1,46 @@
+#!/bin/sh
+#Script Name : pset | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: It checks parallism in Input Files is right
+
+echo '-----------------------------------------------------'
+echo ''
+
+node=`grep nodes run.sh|cut -d' ' -f3|cut -d':' -f1|cut -d'=' -f2`
+ppn=`grep nodes run.sh|cut -d' ' -f3|cut -d':' -f2|cut -d'=' -f2`
+queue=`grep nodes run.sh|cut -d' ' -f3|cut -d':' -f3`
+kpar=`grep KPAR INCAR |cut -d'=' -f2|sed 's/ //g'|cut -d'|' -f1`
+ncore=`grep NCORE INCAR |cut -d'=' -f2|sed 's/ //g'|cut -d'|' -f1`
+
+kpern=$(($kpar%$node))
+npern=$(($ppn%$ncore))
+
+if [ $npern -eq 0 ]
+then
+   if [ $kpern -eq 0 ]
+   then
+      echo 'Best!'
+   else
+      echo 'Good, but kpar is not optimized.'
+   fi
+else
+   if [ $kpern -eq 0 ]
+   then
+      echo 'Wrong! You MUST fix ncore.'
+   else
+      echo 'Wrong! You MUST fix ncore and should check kpar again.' 
+   fi
+fi
+
+echo   'node kpar  ppn ncore queue'
+printf '%4d %4d %4d %5d %5s\n' $node $kpar $ppn $ncore $queue
+echo ''
+
+if [ $queue == 'full' ] && [ $ppn -ne 28 ];then
+   echo 'Warning! Your queue is full, but ppn is not 28'
+elif [ $queue == 'atom' ] && [ $ppn -ne 20 ];then
+   echo 'Warning! Your queue is atom, but ppn is not 20'
+fi
+
+echo '-----------------------------------------------------'
+exit 0

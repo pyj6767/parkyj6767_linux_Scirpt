@@ -1,0 +1,67 @@
+#!/bin/sh
+#Script Name : slayerconv
+#Description
+#: Slab Convergence Test for slab useing TTT/FFF (start FFF : middle layer)
+#Condition : There must be at least 1 work directory in current address
+
+check=`grep Selective POSCAR`
+check2=`grep -n Cartesian POSCAR | awk -F":" '{print $1}'`
+check3=`grep -n Direct POSCAR | awk -F":" '{print $1}'`
+
+if [ -z "$check" ];then
+
+if [ -n "$check2" ];then
+sed -r -e "/Cartesian/i\Selective Dynamics" POSCAR > POSCAR_Slab
+
+elif [ -n "$check3" ];then
+sed -r -e "/Direct/i\Selective Dynamics" POSCAR > POSCAR_Slab
+fi
+
+fi
+
+perl -pi -e 's/\r//' POSCAR_Slab 
+
+
+if [ -n "$check2" ];then
+check=`grep -n Cartesian POSCAR_Slab | awk -F":" '{print $1}'`
+
+elif [ -n "$check3" ];then
+check=`grep -n Direct POSCAR_Slab | awk -F":" '{print $1}'`
+fi
+
+check=`expr $check + 1`
+
+read -p 'axis (a:1,b:2,c:3) : ' axis
+
+
+list=`sed -n ''"$check"',\$p' POSCAR_Slab | awk '{print $'"$axis"'}' | sort | uniq`
+
+total_layer_number=`echo $list | wc -w`
+iteration=`echo $total_layer_number | awk '{out=$1/2; printf("%.0f",out)}'`
+judge=`echo $total_layer_number | awk '{out=$1/2; printf(out)}'`
+judge=`echo $judge | grep .`
+
+if [ -n "$judge" ];then
+j=1
+elif [ -z "$judge" ];then
+j=2
+fi
+
+#filename setting
+for i in $(seq $iteration)
+do
+sla_bulk_selection.py $axis $j
+mkdir $i.Slab_Layer_$j
+cp KPOINTS POTCAR INCAR run.sh $i.Slab_Layer_$j
+cp POSCAR_Slab $i.Slab_Layer_$j/POSCAR
+echo $i.Slab_Layer_$j written!!
+j=`expr $j + 2`
+
+done
+
+
+exit 0
+
+#python3.9 bulk_selection.py
+
+

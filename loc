@@ -1,0 +1,15 @@
+#!/bin/sh
+
+modir=$(pwd)
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+cd $modir/$dir_name
+vaspkit -task 426
+sed -i '1d' PLANAR_AVERAGE.dat
+done
+
+exit 0

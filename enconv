@@ -1,0 +1,80 @@
+#!/bin/sh
+#Script Name : enconv | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Discription
+#: For ENCUT Convergence Test, It makes Job Directories
+#Condition
+#: There are POSCAR, KPOINTS, POTCAR, INCAR, run.sh files in current directory
+
+#grep ENMAX
+echo '-----ENMAX List-----'
+grep ENMAX POTCAR
+
+#Find Maximum of ENMAX
+enmaxmax=`grep ENMAX POTCAR | awk '{print $3}' | sed -e 's/\;//g'`
+enmaxmax=`echo $enmaxmax | awk '{max = 0; for (i=1; i<=NF; i++) max = ($i > max) ? $i : max ; print max}' | awk -F"." '{print $1}'`
+#echo $te | awk '{max=$1} {for (i=1; i<=NF; i++) if($i > max) max = $i} END {print max}'
+
+#Read Input
+echo '-------------------------------------------------'
+read -p 'Initial ENCUT (deafault : Maximum of ENMAXs = '"$enmaxmax"') : ' initial
+read -p 'Increment (default : 50) : ' increment
+
+#default value setting($initial)
+if [[ $initial -lt 1 ]] || [[ $initial == $String22 ]]
+then
+initial=$enmaxmax
+fi
+#Default Value Setting($increment)
+if [[ $increment -lt 1 ]] || [[ $increment == $String22 ]]
+then
+increment=50
+fi
+
+#For User, Check Input
+echo '-------------------------------------------------'
+echo "Initial ENCUT = $initial" " || Increment = $increment "
+echo '-------------------------------------------------'
+
+#total 15 ENCUT Generation
+end=`expr $initial + $increment \* 15`
+index=0
+echo "----------Choose End Value of ENCUT----------"
+for i in `seq "$initial" "$increment" "$end"`
+do
+index=`expr $index + 1` 
+echo $index : ENCUT = $i
+allencut=`echo $allencut $i`
+done
+
+echo '--------------------------------------------------'
+read -p 'Choose End Value of ENCUT (deault : 8) : ' endencut
+
+#Default Value Setting($endencut)
+if [[ $endencut -lt 1 ]] || [[ $endencut == $String22 ]]
+then
+endencut=8
+fi
+
+#Index to Real Value(redirection)
+endencut=`echo $allencut | awk '{print $'"$endencut"'}'`
+echo 'Your End Value of ENCUT =' $endencut
+
+for i in `seq "$initial" "$increment" "$endencut"`
+do
+#Find ENCUT Parameter in INCAR
+encutline=`grep -n ENCUT INCAR | awk '{if( $2 == "ENCUT" ){printf($0)}}'`
+linenumber=`echo $encutline | awk '{print $1}' | sed -e 's/\://g'`
+originalencut=`echo $encutline | awk -F"=" '{print $2}' | awk '{print $1}'`
+
+#Substituting ENCUT Parameter
+sed -i ''"$linenumber"'s/'"$originalencut"'/'"$i"'/' INCAR
+
+#filename setting
+iteration=`expr $iteration + 1`
+mkdir $iteration.ENCUT_$i
+cp POSCAR KPOINTS POTCAR INCAR run.sh $iteration.ENCUT_$i
+echo $iteration.ENCUT_$i written!!
+
+done
+
+exit 0

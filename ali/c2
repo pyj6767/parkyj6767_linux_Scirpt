@@ -1,0 +1,6 @@
+#!/bin/sh
+
+cp CONTCAR POSCAR POTCAR INCAR KPOINTS CHGCAR run.sh $(pwd)/$1
+cp $(pwd)/$1/CONTCAR $(pwd)/$1/POSCAR
+
+exit 0

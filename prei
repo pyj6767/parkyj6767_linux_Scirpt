@@ -1,0 +1,21 @@
+#!/bin/sh
+#Script Name : prei(Parallel Remove Inverse) | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: Parallel rei Code
+#Condition : There must be at least 1 work directory in current address
+
+modir=$(pwd)
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+shopt -s extglob
+
+#-------------------------------------------------------------------------------------
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+cd $modir/$dir_name
+rm !("INCAR"|"CONTCAR"|"KPOINTS"|"POTCAR"|"run.sh"|"POSCAR")
+done
+
+exit 0

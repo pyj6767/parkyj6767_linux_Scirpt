@@ -1,0 +1,25 @@
+#!/bin/sh
+
+ping -c $2 $1 | sed "/PING/d" | sed "s/=/= /g" > ping_result
+
+echo "Written ping_result!"
+
+gnuplot -persist -e "set terminal pdfcairo enhanced dashed size 6in,3in ;set output 'ping_graph.pdf';
+set bmargin 4.0;
+set tmargin 1.4;
+set key right top;
+set border -1 lw 2;
+set style line 1 lt 1 lw 5 lc rgb 'red';
+set xrange [:];
+set yrange [:];
+set xtics font 'arial,18';
+set ytics font 'arial,18';
+set ylabel offset -1 font 'arial,20' \"Time\";
+set xlabel offset 0 font 'arial,20' \"icmp_seq\";
+set style fill transparent solid 0.2;
+set tics nomirror;
+plot 'ping_result' u 7:11 w l lc rgb 'web-blue' lw 3 lt 1 title '"$1"';" # Total DOS
+
+evince ping_graph.pdf
+
+exit 0

@@ -1,0 +1,46 @@
+#!/bin/sh
+#Script Name : jobtimes | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: Print vasptime for current jobs.
+#Inspired by vasptime, Kyung-Yeon Doh's Jobaddress code
+
+if [[ $# -gt 0 ]];then
+   user=$1
+else
+   user=`whoami`
+fi
+
+JOBS=`qstat -u $user -f`
+address=`echo "$JOBS"|awk 'BEGIN{button = 0} {if( $1 == "init_work_dir" ){button=1;printf("%s",$3)} else if( $1 == "request_version" ){button=0;;printf("\n")} else if( button == 1 ){printf("%s",$1)}}'`
+
+#echo $address | awk '{print $1}'
+#echo $address | awk '{print $2}'
+#echo $address | awk '{print $3}'
+#echo $address | awk '{print $4}'
+num_of_jobs=`echo $address | wc -w`
+
+echo "==========================================================================================="
+for i in $(seq $num_of_jobs)
+do
+dir_name=`echo $address | awk '{print $'"$i"'}'`
+
+if [ -e $dir_name/OUTCAR ]; then
+echo "Directory : "$dir_name
+echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+grep LOOP+: $dir_name/OUTCAR | awk 'BEGIN{time=0}{time+=$7}END{print "Time per Ionic step = "time/NR" | # of I step = "NR}'
+grep LOOP: $dir_name/OUTCAR | awk 'BEGIN{time=0}{time+=$7}END{print "Time per Elec. step = "time/NR" | # of E step = "NR}'
+grep LOOP: $dir_name/OUTCAR | awk 'BEGIN{time=0}{time+=$7}END{print "Total running time = " time" sec = "time/60" min = "time/3600" hour"}'
+echo "-------------------------------------------------------------------------------------------"
+
+else
+echo "Directory : "$dir_name
+echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+echo "There is No OUTCAR file."
+echo "-------------------------------------------------------------------------------------------"
+
+fi
+
+
+done
+echo "==========================================================================================="
+exit 0

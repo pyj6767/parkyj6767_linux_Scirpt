@@ -1,0 +1,36 @@
+#!/usr/bin/env python
+
+import os
+from pymatgen.io.vasp.sets import MPRelaxSet
+from pymatgen.ext.matproj import MPRester
+import subprocess
+
+
+material_comp = input('Enter material composition:')
+pwd=os.getcwd()
+mp_key = 'GUSCyHfTNaeWIvbm'
+with MPRester(mp_key) as m:
+    result = m.query(material_comp,['material_id','spacegroup','unit_cell_formula'])
+
+for res in result:
+    print(res,'\n')
+
+material_id = input('Enter mp-id :')
+directory = input('Enter directory name :')
+NCORE = os.popen('grep NCORE ~/SCRIPT/ROOT/sysinfo | awk \'{print $3}\'').read().strip()
+NODE = os.popen('grep NODE ~/SCRIPT/ROOT/sysinfo | awk \'{print $3}\'').read().strip()
+PPN = os.popen('grep PPN ~/SCRIPT/ROOT/sysinfo | awk \'{print $3}\'').read().strip()
+
+mpr = MPRester(mp_key)
+a = mpr.get_structure_by_material_id(material_id, final=True, conventional_unit_cell=False)
+b = MPRelaxSet(a) # Input file)
+b.write_input(directory) # generate input file under directory
+run = ['#!/bin/sh','#PBS -N '+ directory,'#PBS -q full','#PBS -l walltime=48:00:00','#PBS -l nodes='+ NODE + ':ppn='+ PPN,'EXE="/usr/local/VASP/vasp5.4.4vtst-mkl"','NUMBER=`cat $PBS_NODEFILE | wc -l`','cd $PBS_O_WORKDIR','mpirun -machinefile $PBS_NODEFILE -np $NUMBER $EXE > relax.out','exit 0']
+
+f = open('run.sh','w')
+f.write('\n'.join(run))
+f.close()
+
+os.system('mv run.sh '+directory+'/')
+os.system('mv '+directory+'/INCAR '+directory+'/INCAR_TMP')
+os.system('cp /home/kimhc30918/SCRIPT/INCAR_SCRIPT/RELAX/INCAR ./'+directory+'/')

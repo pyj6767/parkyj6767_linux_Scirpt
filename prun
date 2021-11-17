@@ -1,0 +1,22 @@
+#!/bin/sh
+#Script Name : prun | Made by Young-Jun Park yjpark29@postech.ac.kr
+#Description
+#: parallel qsub run.sh
+#Condition : There must be at least 1 work directory in current address
+
+modir=$(pwd)
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+#Iteration run.sh
+#-------------------------------------------------------------------------------------
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+cd $modir/$dir_name
+echo 'Script Entered in '$dir_name'.'
+qsub run.sh
+
+done
+
+exit 0

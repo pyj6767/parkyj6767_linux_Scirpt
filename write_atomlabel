@@ -1,0 +1,65 @@
+#!/bin/sh
+#Script Name : write_atomlabel | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: write_atomlabel (for CONTCAR)
+#Condition : there is CONTCAR file in current directory
+
+#Specifying linenumber
+#------------------------------------------------------------------------
+#Direct/Cartesian Check
+Direct_check=`grep Direct CONTCAR`
+Cartesian_check=`grep Cartesian CONTCAR`
+if [[ -n $Direct_check ]];then
+DC_linenumber=`grep -n Direct CONTCAR | awk -F":" '{print $1}'`
+elif [[ -n $Cartesian_check ]];then
+DC_linenumber=`grep -n Cartesian CONTCAR | awk -F":"  '{print $1}'`
+else
+echo 'Error : Cannot specify Direct/Cartesian'
+fi
+
+#Selective Dynamics Check
+Selective_check=`grep Selective CONTCAR` 
+if [[ -z $Selective_check ]];then
+atomname_linenumber=$(echo "scale=0;$DC_linenumber - 2 " | bc -l)
+atomnumber_linenumber=$(echo "scale=0;$DC_linenumber - 1 " | bc -l)
+else
+atomname_linenumber=$(echo "scale=0;$DC_linenumber - 3 " | bc -l)
+atomnumber_linenumber=$(echo "scale=0;$DC_linenumber - 2 " | bc -l)
+fi
+
+atomtype_number=`sed -n ''"$atomname_linenumber"'p' CONTCAR | wc -w`
+linenumber=`echo $DC_linenumber`
+#-------------------------------------------------------------------------
+
+already_check=`expr $linenumber + 1`
+position_field=`sed -n ''"$already_check"'p' CONTCAR | wc -w`
+if [ $position_field -ge 4 ];then
+echo 'Exit : CONTCAR File already treated'
+exit 0
+fi
+
+#get total atom number
+for k in $(seq $atomtype_number)
+do
+atomnumber=`sed -n ''"$atomnumber_linenumber"'p' CONTCAR | awk '{print $'"$k"'}'`
+totalatom=`expr $sum + $atomnumber`
+sum=$totalatom
+done
+
+#iteration - according to atom type
+for i in $(seq $atomtype_number)
+do
+per_atomname=`sed -n ''"$atomname_linenumber"'p' CONTCAR | awk '{print $'"$i"'}'`
+per_atomnumber=`sed -n ''"$atomnumber_linenumber"'p' CONTCAR | awk '{print $'"$i"'}'`
+
+#iteration - according to number of atom
+for j in $(seq $per_atomnumber)
+do
+linenumber=`expr $linenumber + 1`
+perl -p -i -e '$.=='"$linenumber"' and s/$/ '"$per_atomname"''"$j"'/' CONTCAR
+#awk '{ if (NR=='"$linenumber"') { print $0 " '"$per_atomname"''"$j"'" } else { print $0 } }' CONTCAR
+done
+done
+echo 'write_atomlabel : Complete Labeling!'
+
+exit 0

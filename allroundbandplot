@@ -1,0 +1,494 @@
+#!/usr/bin/env python3.9
+#Script Name : allroundbandplot | Made by Young-Jun Park, yjpark29@postech.ac.kr (Inspired By prof. Ji-Sang Park's Code)
+#Description
+#: Bandstructure Plot by Using EIGENVAL, KPOINTS, OUTCAR File
+#: For Band Gap Calculation, It is inspired by Jin-Chul Kim
+
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+
+#Initial Plot Parameter Setting
+#-----------------------------------------------------------------------------------------------------------
+plt.cla()
+plt.clf()
+#-----------------------------------------------------------------------------------------------------------
+
+#Extract NELECT, NKPTS, ISPIN from OUTCAR
+#=============================================================================================================
+def returnOUTCAR():
+    o=open('OUTCAR')
+    outcar=o.readlines()
+    
+    for i in range(7,len(outcar)):
+        if len(outcar[i].split())>=3:
+            if outcar[i].split()[0]=='NELECT':
+                nelect=float(outcar[i].split()[2])
+                
+            if outcar[i].split()[1]=='NKPTS':
+                nkpts=float(outcar[i].split()[3])
+                
+            if outcar[i].split()[0]=='ISPIN':
+                ISPIN=int(outcar[i].split()[2])
+                
+    return nelect, nkpts, ISPIN
+#=============================================================================================================
+
+#Construct Band Structure Array from EIGENVAL
+#=============================================================================================================
+def returnBAND(nelect,nkpts,ISPIN):
+    e=open('EIGENVAL')
+    eigen=e.readlines()
+    
+    #returnBAND For ISPIN = 2
+    #=========================================================================================================
+    if ISPIN==2:
+        Upband=[]
+        Downband=[]
+        Upbandocc=[]
+        Downbandocc=[]
+
+        for i in range(7,len(eigen)):
+            temp=eigen[i].split()
+
+            if len(temp) == 4:
+                Up_i=[]
+                Down_i=[]
+                Up_i_occ=[]
+                Down_i_occ=[]
+            elif len(temp) == 5:
+                Up_i.append(float(temp[1])) 
+                Down_i.append(float(temp[2]))
+                Up_i_occ.append(float(temp[3]))
+                Down_i_occ.append(float(temp[4]))
+            elif len(temp) == 0:
+                Upband.append(Up_i)
+                Downband.append(Down_i)
+                Upbandocc.append(Up_i_occ)
+                Downbandocc.append(Down_i_occ)
+        Upband.append(Up_i)
+        Downband.append(Down_i)
+        Upbandocc.append(Up_i_occ)
+        Downbandocc.append(Down_i_occ)
+
+        Upband=np.asarray(Upband)
+        Downband=np.asarray(Downband)
+        Upbandocc=np.asarray(Upbandocc)
+        Downbandocc=np.asarray(Downbandocc)
+        
+        Upband=np.matrix.transpose(Upband)
+        Downband=np.matrix.transpose(Downband)
+        Upbandocc=np.matrix.transpose(Upbandocc)
+        Downbandocc=np.matrix.transpose(Downbandocc)
+        
+        nelect=nelect/2 #For ISPIN=2
+        vbmbandnumber=int(nelect-1)
+        cbmbandnumber=int(nelect)
+        
+        vbm1=max(Upband[vbmbandnumber])
+        vbm2=max(Downband[vbmbandnumber])
+        cbm1=min(Upband[cbmbandnumber])
+        cbm2=min(Downband[cbmbandnumber])
+        vbm=max(vbm1,vbm2)
+        cbm=max(cbm1,cbm2)
+        bandgap=cbm-vbm
+        if bandgap < 0:
+            bandgap = 0
+        
+        print('nelect : ', nelect)
+        print('nkpts : ',nkpts)
+        print('vbm : ', vbm)
+        print('cbm : ', cbm)
+        print('bandgap : ', bandgap)
+        
+        return(Upband,Downband,Upbandocc,Downbandocc,vbm,cbm,bandgap)
+    
+    #=========================================================================================================
+    
+    #returnBAND For ISPIN = 1
+    #=========================================================================================================
+    elif ISPIN==1:
+        Upband=[]
+        Upbandocc=[]
+
+        for i in range(7,len(eigen)):
+            temp=eigen[i].split()
+
+            if len(temp) == 4:
+                Up_i=[]
+                Up_i_occ=[]
+            elif len(temp) == 3:
+                Up_i.append(float(temp[1]))
+                Up_i_occ.append(float(temp[2]))
+            elif len(temp) == 0:
+                Upband.append(Up_i)
+        Upband.append(Up_i)
+        Upbandocc.append(Up_i_occ)
+        
+        Upband=np.asarray(Upband)
+        Upbandocc=np.asarray(Upbandocc)
+        
+        Upband=np.matrix.transpose(Upband)
+        Upbandocc=np.matrix.transpose(Upbandocc)
+        
+        vbmbandnumber=int(nelect-1)
+        cbmbandnumber=int(nelect)
+        
+        vbm=max(Upband[vbmbandnumber])
+        cbm=min(Upband[cbmbandnumber])
+        bandgap=cbm-vbm
+        if bandgap < 0:
+            bandgap = 0
+
+        print('nelect : ', nelect)
+        print('nkpts : ',nkpts)
+        print('vbm : ', vbm)
+        print('cbm : ', cbm)
+        print('bandgap : ', bandgap)
+        
+        return(Upband,Upbandocc,vbm,cbm,bandgap) #return
+    #=========================================================================================================
+
+#Extract High Symmetry KPT & K-Points Path from KPOINTS File
+#=========================================================================================================
+def returnKPOINTS():
+    k=open('KPOINTS')
+    kpt=k.readlines()
+    
+    #Sumo Judge
+    #--------------------------------------------------------------------------------------------------------------------------
+    sumo=False
+    for i in range(1, len(kpt)):
+        if len(kpt[i].split()) == 4:
+            if kpt[i].split()[3].isdigit()==True:
+                sumo=True
+                break
+    #---------------------------------------------------------------------------------------------------------------------------
+                
+    #returnKPOINTS - Sumo False
+    #=========================================================================================================
+    if sumo==False:
+        lins=int(kpt[1].split()[0])
+        #Extract Number Of K-Path Line 
+        #----------------------------------------------------------------------------------------------------------------------
+        count=0
+        for i in range(1, len(kpt)):
+            if len(kpt[i].split()) == 4:
+                count += 1
+        LINES = int(count / 2)
+        
+        #Set KPATH to x
+        #-----------------------------------------------------------------------------------------------------------------------
+        x = list(np.arange(0,lins))
+        for i in range(1, LINES):
+            x += list(np.arange(i*lins-i,(i+1)*lins-i))
+        #-----------------------------------------------------------------------------------------------------------------------
+        
+        #Extract High Symmetry KPOINTS Label
+        #------------------------------------------------------------------------------------------------------------------------
+        HSK_label=[]
+        for i in range(1, len(kpt)):
+            if len(kpt[i].split()) == 4:
+                if len(HSK_label)==0:
+                    HSK_label.append(kpt[i].split()[3])
+                elif len(HSK_label)!=0:
+                    if HSK_label[len(HSK_label)-1]==kpt[i].split()[3]:
+                        pass
+                    else:
+                        HSK_label.append(kpt[i].split()[3])
+                    
+        #G/Gamma/g -> Greek symbol (transform)
+        #--------------------------------------------------------------------------------
+        for i in range(len(HSK_label)):
+            if HSK_label[i][0]=='G' or HSK_label[i][0]=='g' or HSK_label[i]=='\Gamma':
+                HSK_label[i]='$\Gamma$'
+                
+        HKPT_line=0 #Not Use for Sumo=False
+        #-------------------------------------------------------------------------------------------------------------------------
+    
+    #returnKPOINTS - Sumo True
+    #=========================================================================================================
+    elif sumo==True:
+        lins=int(kpt[1].split()[0])
+        ##Extract Number Of K-Path Line 
+        #--------------------------------------------------------------------------------------------------------------------------
+        HKPT_line=[]
+        for i in range(1, len(kpt)):
+            if len(kpt[i].split()) == 5 and kpt[i].split()[4].isdigit()==False:
+                HKPT_line.append(i)
+
+        #Extract High Symmetry KPOINTS Label
+        #------------------------------------------------------------------------------------------------------------------------
+        HSK_label=[]
+        for i in range(len(HKPT_line)):
+            if len(kpt[HKPT_line[i]].split()) == 5:
+                if len(HSK_label)==0:
+                    HSK_label.append(kpt[HKPT_line[i]].split()[4])
+                elif len(HSK_label)!=0:
+                    if HSK_label[len(HSK_label)-1]==kpt[HKPT_line[i]].split()[4]:
+                        pass
+                    else:
+                        HSK_label.append(kpt[HKPT_line[i]].split()[4])
+                        
+        LINES = len(HSK_label)-1 #Extract Number Of K-Path Line 
+        
+        #---------------------------------------------Transfor HKPT_line from 0----------------------------------------------------
+        cri=HKPT_line[0]
+        HKPT_line=list(np.asarray(HKPT_line)-cri)
+        #--------------------------------------------------------------------------------------------------------------------------
+            
+        #Set KPATH to x
+        #-----------------------------------------------------------------------------------------------------------------------
+        x=list(np.arange(HKPT_line[0],HKPT_line[len(HKPT_line)-1]+1))
+        
+        #G/Gamma/g -> Greek symbol (transform)
+        #--------------------------------------------------------------------------------
+        for i in range(len(HSK_label)):
+            if HSK_label[i][0]=='G' or HSK_label[i][0]=='g' or HSK_label[i]=='\Gamma':
+                HSK_label[i]='$\Gamma$'
+        #-------------------------------------------------------------------------------------------------------------------------
+        
+    return(lins, LINES, x, HSK_label, HKPT_line, sumo)
+
+#Function Operation
+#-------------------------------------------------------------------------------------------------------------------------
+nelect,nkpts,ISPIN=returnOUTCAR()
+if ISPIN==2:
+    Upband, Downband, Upbandocc, Downbandocc, vbm, cbm, bandgap = returnBAND(nelect,nkpts,ISPIN)
+elif ISPIN==1:
+    Upband, Upbandocc, vbm, cbm, bandgap = returnBAND(nelect,nkpts,ISPIN)
+    
+lins, LINES, x, HSK_label, HKPT_line, sumo = returnKPOINTS()
+#-------------------------------------------------------------------------------------------------------------------------
+
+#Initial Plot
+#==========================================================================================================================
+#==========================================================================================================================
+fig = plt.figure()
+ax = plt.subplot()
+
+#Initial Plot
+#-----------------------------------------------------------
+if ISPIN==2:
+    for i in range(len(Upband)):
+        ax.plot(x, Upband[i]-vbm,'-',color='r',lw=1)
+        ax.plot(x, Downband[i]-vbm,'--',color='b',lw=1)
+
+elif ISPIN==1:
+    for i in range(len(Upband)):
+        ax.plot(x, Upband[i]-vbm,'-',color='b',lw=1)
+#-----------------------------------------------------------
+        
+#xlabel, ylabel Setting
+#-----------------------------------------------------------
+plt.xlabel('k-point',size=18)
+plt.ylabel('Energy (eV)', size=18)
+#-----------------------------------------------------------
+
+#xrange, yrange Setting
+#-----------------------------------------------------------
+# if ISPIN==2:
+#     ymax1 = max(map(max, Upband))
+#     ymax2 = max(map(max, Downband))
+#     ymin1 = min(map(min, Upband))
+#     ymin2 = min(map(min, Downband))
+#     ymax = max(ymax1, ymax2)
+#     ymin = min(ymin1, ymin2)
+
+# elif ISPIN==1:
+#     ymax = max(map(max, Upband))
+#     ymin = min(map(min, Upband))
+
+#Previous Code makes very complex bandstructure, So Simple ymin, ymax value setting
+#-----------------------------------------------------------
+ymin=-10
+ymax=10
+#-----------------------------------------------------------
+
+
+plt.ylim([ymin,ymax])
+plt.xlim(min(x),max(x))
+#-----------------------------------------------------------
+#-----------------------------------------------------------
+
+
+#Plot Vertical Line Along the High Symmetry KPOINTS & Xticks Setting
+#-----------------------------------------------------------
+xticklist=[0]
+
+#sumo - False
+#-----------------------------------------------------------
+if sumo==False:
+    for i in range(1, LINES):
+        plt.axvline(x[i*lins],color='k',lw=1,ls='-')
+
+    for i in range(1,LINES+1):
+        if i!=LINES:
+            xticklist.append(x[i*lins])
+        elif i==LINES:
+            xticklist.append(x[i*lins-1])
+#-----------------------------------------------------------
+
+#sumo - True
+#-----------------------------------------------------------
+elif sumo==True:
+    HKPT_line=HKPT_line[1:]
+    for i in range(0, LINES):
+        plt.axvline(HKPT_line[i],color='k',lw=1,ls='-')
+
+    for i in range(1,LINES+1):
+        if i!=LINES:
+            xticklist.append(HKPT_line[i-1])
+        elif i==LINES:
+            xticklist.append(HKPT_line[i-1])
+
+#-----------------------------------------------------------
+            
+#xticks Setting
+#-----------------------------------------------------------
+ax.set_xticks(xticklist)
+ax.set_xticklabels(HSK_label)
+#-----------------------------------------------------------
+
+
+#set ticks fontsize
+#-----------------------------------------------------------
+for xtick in ax.get_xticklabels():
+    xtick.set_fontsize(18)
+
+for ytick in ax.get_yticklabels():
+    ytick.set_fontsize(18)
+#-----------------------------------------------------------
+
+
+#Plot Optimize
+#-----------------------------------------------------------
+fig.subplots_adjust(bottom=0.15, top=0.95, hspace=0.3, left=0.15)
+plt.show()
+#==========================================================================================================================
+#==========================================================================================================================
+
+
+user_dict={1:'Energy Range', 2:'Line Color', 'q':'Finish(No Additional Setting)'}
+color_dict={1:'b', 2:'g', 3:'r', 4:'c', 5:'m', 6:'y', 7:'b', 8:'w'}
+user = 0
+
+
+
+while user!='q':
+    ax.cla()
+    fig.clf()
+    fig = plt.figure()
+    ax = plt.subplot()
+    
+    print(user_dict)
+    user=input('Choose Additional Setting : ')
+    if user == '1':
+        user=int(user)
+        ymin=float(input('Input Ymin : '))
+        ymax=float(input('Input Ymax : '))
+
+    elif user == '2':
+        user=int(user)
+        print(color_dict)
+        if ISPIN==2:
+            user_color1=int(input('Choose Line Color (For Up Band) : '))
+            user_color2=int(input('Choose Line Color (For Down Band) : '))
+            for i in range(len(Upband)):
+                ax.plot(x, Upband[i]-vbm,'-',color=color_dict[user_color1],lw=1)
+                ax.plot(x, Downband[i]-vbm,'--',color=color_dict[user_color2],lw=1)
+        elif ISPIN==1:
+            user_color1=int(input('Choose Line Color : '))
+            for i in range(len(Upband)):
+                ax.set(color=color_dict[user_color1])
+        
+    #Default Plot Values - Same Iteration
+    #===================================================================================================
+    #===================================================================================================
+    
+    if 'user_color1' in locals() or 'user_color1' in globals():
+        for i in range(len(Upband)):
+            ax.plot(x, Upband[i]-vbm,'-',color=color_dict[user_color1],lw=1)
+    else:
+        for i in range(len(Upband)):
+            ax.plot(x, Upband[i]-vbm,'-',color='r',lw=1)
+        
+    if ISPIN==2:
+        if 'user_color2' in locals() or 'user_color2' in globals():
+            for i in range(len(Upband)):
+                ax.plot(x, Downband[i]-vbm,'--',color=color_dict[user_color2],lw=1)
+        else:
+            for i in range(len(Upband)):
+                ax.plot(x, Downband[i]-vbm,'--',color='b',lw=1)
+    
+    #xlabel, ylabel Setting
+    #-----------------------------------------------------------
+    plt.xlabel('k-point',size=18)
+    plt.ylabel('Energy (eV)', size=18)
+    
+    #xrange, yrange Setting
+    #-----------------------------------------------------------
+    plt.ylim([ymin,ymax])
+    plt.xlim(min(x),max(x))
+    
+    #Plot Vertical Line Along the High Symmetry KPOINTS & Xticks Setting
+    #-----------------------------------------------------------
+    xticklist=[0]
+    
+    #sumo - False
+    #-----------------------------------------------------------
+    if sumo==False:
+        for i in range(1, LINES):
+            plt.axvline(x[i*lins],color='k',lw=1,ls='-')
+
+        for i in range(1,LINES+1):
+            if i!=LINES:
+                xticklist.append(x[i*lins])
+            elif i==LINES:
+                xticklist.append(x[i*lins-1])
+
+    #sumo - True
+    #-----------------------------------------------------------
+    elif sumo==True:
+        for i in range(0, LINES):
+            plt.axvline(HKPT_line[i],color='k',lw=1,ls='-')
+
+        for i in range(1,LINES+1):
+            if i!=LINES:
+                xticklist.append(HKPT_line[i-1])
+            elif i==LINES:
+                xticklist.append(HKPT_line[i-1])
+
+    #xticks Setting
+    #-----------------------------------------------------------
+    ax.set_xticks(xticklist)
+    ax.set_xticklabels(HSK_label)
+
+    #set ticks fontsize
+    #-----------------------------------------------------------
+    for xtick in ax.get_xticklabels():
+        xtick.set_fontsize(18)
+
+    for ytick in ax.get_yticklabels():
+        ytick.set_fontsize(18)
+
+    #Plot Optimize
+    #-----------------------------------------------------------
+    fig.subplots_adjust(bottom=0.15, top=0.95, hspace=0.3, left=0.15)
+    #===================================================================================================
+    #===================================================================================================
+        
+    plt.show()
+    
+    if user == 'q':
+        break
+            
+
+#fig.savefig("bandplot_allround.pdf",dpi=300)
+
+if 'user_color1' in locals() or 'user_color1' in globals():
+    del(user_color1)
+
+if 'user_color2' in locals() or 'user_color2' in globals():
+    del(user_color2)
+

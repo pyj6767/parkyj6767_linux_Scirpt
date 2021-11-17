@@ -1,0 +1,14 @@
+#!/bin/sh
+#Scripte Name : polprinter
+#:PLA(Planar Average Accumulation)
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+head -1 $dir_name/PLA | awk '{print $1}' >> PLA_total
+done
+
+exit 0

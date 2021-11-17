@@ -1,0 +1,39 @@
+#!/bin/sh
+#Script Name : volume_change | Made by Young-Jun Park, yapark29@postech.ac.kr
+#Description
+#: Isotropic Volume Change
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+#read -p '1)isotropic / 2)anisotropic'
+read -p 'inc = ' inc
+#inc=`echo '-'$inc`
+#inc=`echo $inc | awk '{n=-1*'"$inc"'; print n}'`
+#echo $inc
+initial_inc=$inc
+
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+inc=`echo $inc | awk '{n=$1+'"$initial_inc"'; print n}'`
+
+r1=`sed -n '3p' $(pwd)/$dir_name/POSCAR | awk '{r=$1+'"$inc"'; printf("%.16f",r)}'`
+r2=`sed -n '4p' $(pwd)/$dir_name/POSCAR | awk '{r=$2+'"$inc"'; printf("%.16f",r)}'`
+r3=`sed -n '5p' $(pwd)/$dir_name/POSCAR | awk '{r=$3+'"$inc"'; printf("%.16f",r)}'`
+
+s1=`sed -n '3p' $(pwd)/$dir_name/POSCAR | awk '{$1='"$r1"'; print $0}'`
+s2=`sed -n '4p' $(pwd)/$dir_name/POSCAR | awk '{$2='"$r2"'; print $0}'`
+s3=`sed -n '5p' $(pwd)/$dir_name/POSCAR | awk '{$3='"$r3"'; print $0}'`
+
+echo $dir_name " : " 
+echo $s1 $s2 $s3
+
+sed -i '3s/.*/  '"$s1"'/' $(pwd)/$dir_name/POSCAR
+sed -i '4s/.*/  '"$s2"'/' $(pwd)/$dir_name/POSCAR
+sed -i '5s/.*/  '"$s3"'/' $(pwd)/$dir_name/POSCAR
+
+
+done
+
+exit 0

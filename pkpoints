@@ -1,0 +1,39 @@
+#!/bin/sh
+#Script Name : pkpoints(Parallel KPOINTS) | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: Parallel KPOINTS setting Code
+#Condition : There must be at least 1 work directory in current address
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+read -p "Enter Kx arguments : " kx
+read -p "Enter Ky arguments : " ky
+read -p "Enter Kz arguments : " kz
+
+#echo $argu
+#kx=`echo $argu|awk '{print $1}'`
+#ky=`echo $argu|awk '{print $2}'`
+#kz=`echo $argu|awk '{print $3}'`
+
+#echo $kx
+#echo $ky
+#echo $kz
+
+
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+line=`sed -n 4p $(pwd)/$dir_name/KPOINTS`
+change=`echo $line|sed -e 's/.*/  '"$kx"'   '"$ky"'   '"$kz"'/'`
+
+echo "======================================================================="
+echo "Directory : " $dir_name
+echo "Before : " $line
+echo "After : " $change
+
+
+sed -i '4s/.*/'" $change"'/' $(pwd)/$dir_name/KPOINTS
+done
+echo "======================================================================="
+exit 0

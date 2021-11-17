@@ -1,0 +1,331 @@
+#!/bin/sh
+#Script Name : data_printer | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Discription
+#: Parallel, Extract Useful Output Data from Calculation
+#Condition
+#: Parallel Address
+
+modir=$(pwd)
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+#directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}' | awk -F"." 'BEGIN{t=0}{if ( $1 < 10 ){print "0"$0} else if( $1 > 9 ){print $0} else {print $0}}' | sort`
+
+for i in $(seq $num_of_dirs)
+do
+extract_check=`echo $directorys | awk '{print $'"$i"'}'`
+if [[ $extract_check == "extracted_data" ]];then
+rm -r extracted_data
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}' `
+num_of_dirs=`echo $directorys | wc -w`
+break
+fi
+done
+
+directory_num=`ls -l $(pwd) | grep "^d" | awk '{print $9}' | awk -F"." '{print $1}'`
+
+for d in $(seq $num_of_dirs)
+do
+dc=`echo $directory_num | awk '{print $'"$d"'}' | wc -c`
+if [ $dc -lt 3 ];then
+dir1=`echo $directorys | awk '{print $'"$d"'}'`
+total_dir1=`echo $total_dir1 $dir1`
+else
+dir2=`echo $directorys | awk '{print $'"$d"'}'`
+total_dir2=`echo $total_dir2 $dir2`
+fi
+done
+
+directorys=`echo $total_dir1 $total_dir2`
+
+#echo $directorys
+#sort
+#--------------------------------------------------
+#for j in $directorys
+#do
+#n1=`echo $j | awk -F"." '{print $1}'`
+#if [ $n1 -lt 10 ];then
+#n2=`echo $j | cut -c 2-`
+#n3=`echo $n3 $n2`
+#elif [ $n1 -ge 10 ];then
+#n3=`echo $n3 $j`
+#else
+#n3=`echo $n3 $j`
+#fi
+#done
+#directorys=$n3
+#--------------------------------------------------
+
+
+read -p "INCAR Tag? [ Input of Multi Fields is Possible, ex) encut ediffg ] : " Tag
+Tag=`echo $Tag | tr '[a-z]' '[A-Z]'`
+echo "-------------------------------------------------------------------"
+echo "Your Input : $Tag"
+echo "-------------------------------------------------------------------"
+
+echo "1) Born Effective Charge"
+read -p "OUTCAR result? choose your input [ Input of Multi Fields is Possible, ex) 1 4 ] : " out
+echo "Your Input : $out"
+echo "-------------------------------------------------------------------"
+
+#OUTCAR result
+if [ -n "$out" ];then
+num_of_out=`echo $out | wc -w`
+for p in $(seq $num_of_out)
+do
+if [ $p == "1" ];then
+read -p "Born Effective Charge Direction(1,2,3) : " direction
+fi
+done
+fi
+
+mkdir extracted_data
+
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+
+
+#directory_name
+echo $iteration >> $(pwd)/extracted_data/iteration
+echo $dir_name >> $(pwd)/extracted_data/directory_name
+
+#Number of atoms
+allatoms=`sed -n '7p' $(pwd)/$dir_name/CONTCAR | awk '{ for (i=1; i<=NF; i++) total += $i }; END { print total }'`
+echo $allatoms >> $(pwd)/extracted_data/num_of_allatoms
+
+num_of_field=`sed -n '7p' $(pwd)/$dir_name/CONTCAR | awk '{ print NF }'`
+
+for k in $(seq $num_of_field)
+do
+elements=`sed -n '7p' $(pwd)/$dir_name/CONTCAR | awk '{print $'"$k"'}'`
+element_name=`sed -n '6p' $(pwd)/$dir_name/CONTCAR | awk '{print $'"$k"'}'`
+echo $elements >> $(pwd)/extracted_data/$element_name
+done
+
+#atomic Position(POSCAR)
+for a in $(seq $allatoms)
+do
+positionline=`expr $a + 8`
+for b in {1..3}
+do
+atomposition=`echo 'atom'$a'position'$b`
+position_all=`sed -n ''"$positionline"'p' $(pwd)/$dir_name/POSCAR | awk '{print $1 " " $2 " " $3}'`
+position=`echo $position_all | awk '{print $'"$b"'}'`
+echo $position >> $(pwd)/extracted_data/$atomposition
+done
+done
+
+#atomic Position(CONTCAR)
+for a in $(seq $allatoms)
+do
+positionline=`expr $a + 8`
+for b in {1..3}
+do
+atomposition=`echo 'atom'$a'position'$b`
+position_all=`sed -n ''"$positionline"'p' $(pwd)/$dir_name/CONTCAR | awk '{print $1 " " $2 " " $3}'`
+position=`echo $position_all | awk '{print $'"$b"'}'`
+echo $position >> $(pwd)/extracted_data/$atomposition
+done
+done
+
+
+#Extract TOTEN
+previous_TOTEN=$TOTEN
+TOTEN=`grep "TOTEN" $(pwd)/$dir_name/OUTCAR | tail -1 | rev | cut -d ' ' -f 2 | rev`
+echo $TOTEN >> $(pwd)/extracted_data/TOTEN
+
+if [ -n "$previous_TOTEN" ];then
+d_TOTEN=`echo $previous_TOTEN $TOTEN | awk '{d=$2-$1; print d}'`
+else
+d_TOTEN=0
+fi
+
+#absolute_value
+if [[ $d_TOTEN =~ "-" ]];then
+d_TOTEN=`echo $d_TOTEN | cut -c 2-`
+fi
+echo $d_TOTEN >> $(pwd)/extracted_data/d_TOTEN
+
+
+#TOTEN per f.u.
+previous_TOTEN_per_fu=$TOTEN_per_fu
+TOTEN_per_fu=`echo "$TOTEN" " " "$allatoms" | awk '{print $1/$2}'`
+echo $TOTEN_per_fu >> $(pwd)/extracted_data/TOTEN_per_fu
+
+if [ -n "$previous_TOTEN_per_fu" ];then
+d_TOTEN_per_fu=`echo $previous_TOTEN_per_fu $TOTEN_per_fu | awk '{d=$2-$1; print d}'`
+else
+d_TOTEN_per_fu=0
+fi
+
+#absolute_value
+if [[ $d_TOTEN_per_fu =~ "-" ]];then
+d_TOTEN_per_fu=`echo $d_TOTEN_per_fu | cut -c 2-`
+fi
+
+echo $d_TOTEN_per_fu >> $(pwd)/extracted_data/d_TOTEN_per_fu
+
+#Pseudopotential
+ps=`grep PBE $(pwd)/$dir_name/POTCAR`
+if [ -z "$pse" ];then
+pse='LDA'
+else
+pse='PBE'
+fi
+echo $pse >> $(pwd)/extracted_data/Pseudopotential
+
+
+#Valence_electron
+ve_name_list=`grep -n VRHFIN $(pwd)/$dir_name/POTCAR | awk -F"=" '{print $2}' | awk -F":" '{print $1}'`
+ve_list=`grep -n VRHFIN $(pwd)/$dir_name/POTCAR | awk -F"=" '{print $2}' | awk -F":" '{if ($2 == "") print "VRHFIN_NonWritten"; else print $2}'`
+num_of_ve=`echo $ve_name_list | wc -w`
+
+for v in $(seq $num_of_ve)
+do
+ve_name=`echo $ve_name_list | awk '{print $'"$v"'}'`
+ve=`echo $ve_list | awk '{print $'"$v"'}'`
+echo $ve >> $(pwd)/extracted_data/Valence_Electron_$ve_name
+done
+
+#Extract vasptime
+electronic_time=`grep LOOP+: $(pwd)/$dir_name/OUTCAR | awk 'BEGIN{time=0}{time+=$7}END{print time/NR}'`
+ionic_time=`grep LOOP: $(pwd)/$dir_name/OUTCAR | awk 'BEGIN{time=0}{time+=$7}END{print time/NR}'`
+total_time=`grep LOOP: $(pwd)/$dir_name/OUTCAR | awk 'BEGIN{time=0}{time+=$7}END{print time}'`
+echo $electronic_time >> $(pwd)/extracted_data/electronic_time
+echo $ionic_time >> $(pwd)/extracted_data/ionic_time
+echo $total_time >> $(pwd)/extracted_data/total_time
+
+#Extract Bandgap
+cd $(pwd)/$dir_name
+
+Iteration_line=`grep -n Iteration OUTCAR | tail -1 | awk -F":" '{print $1}'`
+spin_component_line=`grep -n "spin component 1" OUTCAR | tail -1 | awk -F":" '{print $1}'`
+
+if [[ $Iteration_line -lt $spin_component_line ]];then
+vbm_kpoint=`bandgap.pl | grep "the k-point" | sed -n '1p' | awk '{if ( $3=="of" ) print $4 " " $5 " " $6;else print $3 " " $4 " " $5}' | sed -e 's/\,//g'`
+cbm_kpoint=`bandgap.pl | grep "the k-point" | sed -n '2p' | awk '{if ( $3=="of" ) print $4 " " $5 " " $6;else print $3 " " $4 " " $5}' | sed -e 's/\,//g'`
+vbm_energy=`bandgap.pl | grep "valence band" | awk '{if ( $9=="eV" ) print $8;else if ( $9=="minority" || $9=="majority" )print $14}'`
+cbm_energy=`bandgap.pl | grep "conduction band" | awk '{if ( $9=="eV" ) {print $8}}'`
+#pl_bandgap=`bandgap.pl | grep "This produces" | awk '{print $8}'`
+bandgap=`echo $cbm_energy $vbm_energy | awk '{b=$1-$2; print b}'` #cal_bandgap(More Accurate)
+direct_or_indirect=`bandgap.pl | grep "This produces" | awk '{print $4}'`
+
+echo $vbm_kpoint >> $modir/extracted_data/vbm_kpoint
+echo $cbm_kpoint >> $modir/extracted_data/cbm_kpoint
+echo $vbm_energy >> $modir/extracted_data/vbm_energy
+echo $cbm_energy >> $modir/extracted_data/cbm_energy
+echo $bandgap >> $modir/extracted_data/bandgap
+echo $direct_or_indirect >> $modir/extracted_data/direct_or_indirect
+
+else
+#analyze-hse.sh
+echo $dir_name ": You may run BORN Effective Charge Calculation, bandgap value will be possible after..."
+fi
+
+cd $modir
+
+#Lattice Parameter(POSCAR)
+#Lattice_Parameter_set=`head -n 5 $(pwd)/$dir_name/CONTCAR | tail -3 | awk '{print $1 " " $2 " " $3 " "}'`
+Lat_P_a=`sed -n '3p' $(pwd)/$dir_name/POSCAR`
+Lat_P_a_value=`echo $Lat_P_a | awk '{v=sqrt($1*$1+$2*$2+$3*$3); print v}'`
+Lat_P_b=`sed -n '4p' $(pwd)/$dir_name/POSCAR`
+Lat_P_b_value=`echo $Lat_P_b | awk '{v=sqrt($1*$1+$2*$2+$3*$3); print v}'`
+Lat_P_c=`sed -n '5p' $(pwd)/$dir_name/POSCAR`
+Lat_P_c_value=`echo $Lat_P_c | awk '{v=sqrt($1*$1+$2*$2+$3*$3); print v}'`
+
+
+#echo $Lattice_Parameter_set >> $(pwd)/extracted_data/Lattice_Parameter_set
+echo $Lat_P_a >> $(pwd)/extracted_data/Lat_P_a
+echo $Lat_P_a_value >> $(pwd)/extracted_data/Lat_P_a_value
+echo $Lat_P_b >> $(pwd)/extracted_data/Lat_P_b
+echo $Lat_P_b_value >> $(pwd)/extracted_data/Lat_P_b_value
+echo $Lat_P_c >> $(pwd)/extracted_data/Lat_P_c
+echo $Lat_P_c_value >> $(pwd)/extracted_data/Lat_P_c_value
+
+
+#Lattice Parameter(CONTCAR)
+#Lattice_Parameter_set=`head -n 5 $(pwd)/$dir_name/CONTCAR | tail -3 | awk '{print $1 " " $2 " " $3 " "}'`
+Lat_C_a=`sed -n '3p' $(pwd)/$dir_name/CONTCAR`
+Lat_C_a_value=`echo $Lat_C_a | awk '{v=sqrt($1*$1+$2*$2+$3*$3); print v}'`
+Lat_C_b=`sed -n '4p' $(pwd)/$dir_name/CONTCAR`
+Lat_C_b_value=`echo $Lat_C_b | awk '{v=sqrt($1*$1+$2*$2+$3*$3); print v}'`
+Lat_C_c=`sed -n '5p' $(pwd)/$dir_name/CONTCAR`
+Lat_C_c_value=`echo $Lat_C_c | awk '{v=sqrt($1*$1+$2*$2+$3*$3); print v}'`
+
+
+#echo $Lattice_Parameter_set >> $(pwd)/extracted_data/Lattice_Parameter_set
+echo $Lat_C_a >> $(pwd)/extracted_data/Lat_C_a
+echo $Lat_C_a_value >> $(pwd)/extracted_data/Lat_C_a_value
+echo $Lat_C_b >> $(pwd)/extracted_data/Lat_C_b
+echo $Lat_C_b_value >> $(pwd)/extracted_data/Lat_C_b_value
+echo $Lat_C_c >> $(pwd)/extracted_data/Lat_C_c
+echo $Lat_C_c_value >> $(pwd)/extracted_data/Lat_C_c_value
+
+#KPOINTS
+KPT=`sed -n '4p' $(pwd)/$dir_name/KPOINTS`
+KPT=`echo $KPT | awk '{print "("$1"/"$2"/"$3")"}'`
+echo $KPT >> $(pwd)/extracted_data/KPT_setting
+
+#INCAR Tag
+if [ -n "$Tag" ]; then
+num_of_Tags=`echo $Tag | wc -w`
+for j in $(seq $num_of_Tags)
+do
+Tag_iteration=`echo $Tag | awk '{print $'"$j"'}'`
+filename=`echo $Tag_iteration | awk '{print $0 "_incartag"}'`
+tag_value=`grep $Tag_iteration $(pwd)/$dir_name/OUTCAR | awk '{printf ("  %f",$3)}'`
+echo $tag_value >> $(pwd)/extracted_data/$filename
+done
+fi
+
+#OUTCAR result
+if [ -n "$out" ];then
+for p in $(seq $num_of_out)
+do
+
+if [ $p == "1" ];then
+born_line=`grep -n "BORN EFFECTIVE CHARGE" $(pwd)/$dir_name/OUTCAR | sed -n ''"$direction"'p' | awk -F":" '{print $1}'`
+born_line=`expr $born_line + 2`
+born_line_end=`expr $born_line + $allatoms - 1`
+
+for k in $(seq $allatoms)
+do
+BORN=`sed -n ''"$born_line"','"$born_line_end"'p' $(pwd)/$dir_name/OUTCAR | sed -n ''"$k"'p' | awk '{print $4 " " $5 " " $6}'`
+
+for c in {1..3}
+do
+BORN_atom=`echo 'BORN_Effective_atom'$k'axis'$c`
+BORN_atom_direction=`echo $BORN | awk '{print $'"$c"'}'`
+echo $BORN_atom_direction >> $(pwd)/extracted_data/$BORN_atom
+done
+
+done
+fi
+done
+fi
+
+done
+
+#data Paste
+if test -f ''"$(pwd)"'/extracted_data/ENCUT_incartag';then
+if test -f ''"$(pwd)"'/extracted_data/EDIFFG_incartag';then
+paste $(pwd)/extracted_data/* > total_data
+cd $(pwd)/extracted_data
+paste ENCUT_incartag KPT_setting d_TOTEN_per_fu d_TOTEN TOTEN_per_fu TOTEN total_time > $modir/ENCUT_convtest
+cd $modir
+fi
+fi
+
+
+
+
+data_to_csv.py
+
+echo "pandas_csv_data saved!"
+read -p "Do you want to keep extracted_data directory?(y/n) : " remain
+
+if [[ $remain == "n" ]]; then
+rm -r extracted_data
+fi
+

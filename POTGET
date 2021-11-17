@@ -1,0 +1,127 @@
+#!/bin/sh
+#Script Name : POTGET | Made by Jin-Chul Kim, Young-Jun Park, kimhc30918@postech.ac.kr, yjpark29@postech.ac.kr
+#Description
+#: Getting POTCAR File
+#Condition : X
+
+me=`whoami`
+ 
+if [ $# == 0 ];then
+echo "----------------------------------------"
+echo "No Arguments : Start User Interface Mode"
+echo "----------------------------------------"
+
+while :
+do
+read -p 'LDA(1)/PBE(2) : ' Arg1
+echo "----------------------------------------"
+
+if [ $Arg1 == "1" ];then
+Arg1="LDA"
+break
+elif [ $Arg1 == "2" ];then
+Arg1="PBE"
+break
+else
+echo "Enter LDA(1) or PBE(2)!!!!!"
+echo "----------------------------------------"
+fi
+done
+
+if [ $Arg1 == "LDA" ];then
+Approximation='/usr/local/VASP/VASP_potentials_52/LDA'
+elif [ $Arg1 == "PBE" ];then
+Approximation='/usr/local/VASP/pp-54'
+fi
+
+
+while :
+do
+read -p "Input Atom Name (Finish : q) : " Atomgen
+echo "----------------------------------------"
+Character_Number_add1=`echo $Atomgen | wc -m`
+Character_Number=$(echo "scale=0;$Character_Number_add1 - 1 " | bc -l)
+All_Atom_list=`ls $Approximation | grep $Atomgen`
+Atomgen_list=''
+
+for n in $All_Atom_list
+do
+check_add1=`echo $n | cut -c -$Character_Number_add1`
+Atomgen_underbar=`echo "$Atomgen""_"`
+Atomgen_dot=`echo "$Atomgen""."`
+
+if [ $n == $Atomgen ];then
+Atomgen_list=`echo $Atomgen_list $n`
+elif [ $check_add1 == $Atomgen_underbar ];then
+Atomgen_list=`echo $Atomgen_list $n`
+elif [ $check_add1 == $Atomgen_dot ]; then
+Atomgen_list=`echo $Atomgen_list $n`
+fi
+done
+
+Num_of_Atomgen=`echo $Atomgen_list | wc -w`
+
+if [ $Num_of_Atomgen -gt 1 ];then
+for i in $(seq $Num_of_Atomgen)
+do
+name=`echo $Atomgen_list | awk '{print $'"$i"'}'`
+echo $i : $name
+done
+echo "----------------------------------------"
+read -p "Select the POTCAR File : " select
+echo "----------------------------------------"
+Atomgen=`echo $Atomgen_list | awk '{print $'"$select"'}'`
+fi
+
+allatom=`echo $allatom $Atomgen`
+echo "Cuurent Inputs : $allatom"
+echo "----------------------------------------"
+
+if [ $Atomgen == "q" ];then
+echo "OK!"
+allatom=`echo $allatom | rev | cut -c 2- | rev`
+break
+fi
+
+done
+
+elif [ $# -gt 0 ] && [ -z $2 ];then
+echo "-----------------------------------------"
+echo "For Use Argument Mode"
+echo "Enter the name of the element you want to bring to POTCAR!!!"
+echo -e "Arg 1: LDA or PBE\nArg 2: Element 1\nArg 3: Element 2\nArg 4: Element 3\n    ..."
+echo "-----------------------------------------"
+exit 0
+
+else
+echo "----------------------------------------"
+echo "Get Arguments : Start User Argument Mode"
+echo "----------------------------------------"
+if [ $1 == "LDA" ];then
+Approximation='/usr/local/VASP/VASP_potentials_52/LDA'
+elif [ $1 == "PBE" ];then
+Approximation='/usr/local/VASP/pp-54'
+fi
+
+allatom=`echo $@ | cut -d ' ' -f2-`
+fi
+
+
+for i in $allatom 
+do
+if test -f "$Approximation/$i/POTCAR";then
+localcatfield=`echo $Approximation/$i/POTCAR`
+else
+echo "----------------------------------------"
+echo "There is no '$Approximation/$i Folder' or 'POTCAR File in $Approximation/$i' "
+echo "Fail to Create POTCAR File !!"
+echo "----------------------------------------"
+exit 0
+fi
+catfield=`echo $catfield $localcatfield`
+cat $catfield > POTCAR
+done
+
+echo "POTCAR File is Written."
+
+exit 0

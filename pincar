@@ -1,0 +1,129 @@
+#!/bin/sh
+#Script Name : pincar(Parallel INCAR) | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: Parallel INCAR setting Code
+#Condition : There must be at least 1 work directory in current address
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+if [ $# -lt 2 ];then
+echo "----------------------------------------"
+echo "No Arguments : Start User Interface Mode"
+echo "----------------------------------------"
+read -p "INCAR Tag which you want to change : " Tag
+Tag=`echo $Tag | tr '[a-z]' '[A-Z]'`
+echo "-------------------------------------------------------------------"
+echo "Your Input : $Tag"
+echo "-------------------------------------------------------------------"
+read -p "INCAR Tag arguments [# : Add Comment Marks(ex: NSW-> #NSW) / ## : Remove Comment marks (ex : #NSW -> NSW)]: " argu
+
+else
+Tag=$1
+Tag=`echo $Tag | tr '[a-z]' '[A-Z]'`
+argu=$2
+fi
+
+#Extract INCAR tag Line
+#-------------------------------------------------------------------------------------
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+line=`grep "$Tag" $(pwd)/$dir_name/INCAR | sed 's/$/ Next_Level /' | sed 's/#//'`
+linenumber=`grep -n "$Tag" $(pwd)/$dir_name/INCAR | cut -d':' -f1`
+num_of_lines=`echo $line | grep -o -w "Next_Level" | wc -w`
+
+for j in $(seq $num_of_lines)
+do
+tagname=`echo $line | awk -F"Next_Level" '{print $'"$j"'}' | awk '{print $1}'`
+
+
+if [[ $tagname == $Tag ]];then
+target_line_number=`echo $linenumber | awk '{print $'"$j"'}'`
+finalline=`echo $line | awk -F"Next_Level" '{print $'"$j"'}'`
+fi
+done
+
+if [ -z "$tagname" ];then
+echo '--------------------------------------------------------------------'
+echo 'Cannot search '"$Tag"'-Tag in INCAR File'
+exit 0
+fi
+
+
+#-------------------------------------------------------------------------------------
+
+
+#Pre-Processing
+#-------------------------------------------------------------------------------------
+change=`echo $finalline | sed "s/#//"`
+num_of_fields=`echo $argu | awk '{print NF}'`
+#-------------------------------------------------------------------------------------
+
+
+#If Number of Argument == 1, Direct Change
+#-------------------------------------------------------------------------------------
+if [[ $num_of_fields == 1 ]];
+then
+if [[ $argu != '#' ]] && [[ $argu != '##' ]];then
+change=`echo $change | awk '{$3="Iwillchange"; print $0}'`
+change=`echo $change | sed 's/Iwillchange/'"$argu"'/'`
+elif [[ $argu == '#' ]];then
+change=`echo '#' $change`
+elif [[ $argu == '##' ]];then
+change=`echo $change`
+fi
+#change=`echo $change | awk '{$3='"$argu"'; print $0}'`
+#change=`echo $change | awk '{ sub(".*",'"$argu"',$3); print $0}'`
+
+#elif Number of Argument >= 2, It need Additional Processing 
+#-------------------------------------------------------------------------------------
+else
+#Judge INCAR tag length & Save Original Value
+#-------------------------------------------------------------------------------------
+original=''
+for k in {1..5}
+do
+k=$(echo "scale=0;$k+2"|bc -l)
+tagfield=`echo $change | awk '{print $'"$k"'}'`
+
+if [ $tagfield -eq $tagfield ] 2>/dev/null ;then
+original=`echo $original $tagfield`
+
+elif [[ `echo "$tagfield == $tagfield" | bc` -eq 1 ]] > /dev/null 2>&1;then
+original=`echo $original $tagfield`
+
+else
+break
+fi
+done
+#-------------------------------------------------------------------------------------
+
+#Judge Input Argument length
+#-------------------------------------------------------------------------------------
+new=''
+for i in $(seq $num_of_fields)
+do
+value=`echo $argu | awk '{print $'"$i"'}'`
+new=`echo $new $value`
+done
+#-------------------------------------------------------------------------------------
+change=`echo $change | sed 's/'"$original"'/'"$new"'/'`
+fi
+
+#echo 'original' $original
+#echo 'change' $change
+#echo 'tln' $target_line_number
+
+
+echo "======================================================================="
+echo "Directory : " $dir_name
+echo "Before : " $finalline
+echo "After : " $change
+
+sed -i ''"$target_line_number"' c\'" $change"'' $(pwd)/$dir_name/INCAR
+#dir_name=`echo $directorys | awk -v n=$i '{ print $n }'`
+#cat $(pwd)/$dir_name/INCAR | awk -F"|" '{print $}'
+done
+echo "======================================================================="
+exit 0

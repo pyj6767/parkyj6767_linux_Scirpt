@@ -1,0 +1,130 @@
+#!/usr/bin/env python3.9
+#Script Name : tocenter
+#Coordination move to center code
+
+#중심으로 옮기기
+
+import os
+import sys
+import numpy as np
+
+POSCARfile = open('POSCAR','r')
+
+linedata=POSCARfile.readlines()
+
+Lattice_Parameters=linedata[2:5]
+coordinates=linedata[8:]
+
+LP=[]
+coordi=[]
+original_coordi=[]
+
+#LP 추출
+for i in range(0, len(Lattice_Parameters)):
+    Lattice_Parameters[i]=Lattice_Parameters[i].replace('\n','').replace('\r','')
+    LP.append(Lattice_Parameters[i].split(' '))
+
+for j in range(0, len(LP)):
+    LP[j] = [k for k in LP[j] if k != '']
+
+
+#좌표 추출
+for i in range(0, len(coordinates)):
+    coordinates[i]=coordinates[i].replace('\n','').replace('\r','')
+    coordi.append(coordinates[i].split(' '))
+    original_coordi.append(coordinates[i].split(' '))
+
+for j in range(0, len(coordi)):
+    coordi[j] = [k for k in coordi[j] if k != '']
+    original_coordi[j] = [k for k in original_coordi[j] if k != '']
+
+#좌표 합 구하기 (LP)
+lxsum=0
+lysum=0
+lzsum=0
+
+for i in range(0, len(LP)):
+    lxsum+=float(LP[i][0])
+    lysum+=float(LP[i][1])
+    lzsum+=float(LP[i][2])
+
+#Lattice의 정중앙 좌표
+lxw=lxsum/2
+lyw=lysum/2
+lzw=lzsum/2
+lcow=[lxw, lyw, lzw]
+
+
+#좌표 합 구하기(coordinates)
+xsum=0
+ysum=0
+zsum=0
+
+for i in range(0, len(coordi)):
+    xsum+=float(coordi[i][0])
+    ysum+=float(coordi[i][1])
+    zsum+=float(coordi[i][2])
+
+
+#무게중심
+xw=xsum/len(coordi)
+yw=ysum/len(coordi)
+zw=zsum/len(coordi)
+cow=[xw, yw, zw]
+
+#무게중심과 정 중앙과의 차이
+diff=np.array(lcow)-np.array(cow)
+    
+#새로운 좌표 생성
+for i in range(0, len(coordi)):
+    coordi[i][0]=float(coordi[i][0])+diff[0]
+    coordi[i][1]=float(coordi[i][1])+diff[1]
+    coordi[i][2]=float(coordi[i][2])+diff[2]
+
+#Input 받기
+while True:
+    user_axis=input('Choose Axis for to center(1: all, 2:a, 3:b, 4:c, q:quit) : ')
+    if user_axis=='q':
+        break
+    try:
+        user_axis=int(user_axis)
+        if user_axis>=1 and user_axis<=4:
+            break
+    except:
+        print('Input must be int.')
+    
+if user_axis=='q':
+    sys.exit('Success Exit') 
+
+    
+new_text_content=''
+
+with open('POSCAR','r') as f:
+    lines=f.readlines()
+    for i, l in enumerate(lines):
+        if i>=8:
+            if user_axis==1:
+                new_string='{} {} {}'.format(coordi[i-8][0], coordi[i-8][1], coordi[i-8][2])
+            elif user_axis==2:
+                new_string='{} {} {}'.format(coordi[i-8][0], original_coordi[i-8][1], original_coordi[i-8][2])
+            elif user_axis==3:
+                new_string='{} {} {}'.format(original_coordi[i-8][0], coordi[i-8][1], original_coordi[i-8][2])
+            elif user_axis==4:
+                new_string='{} {} {}'.format(original_coordi[i-8][0], original_coordi[i-8][1], coordi[i-8][2])
+                print(new_string)
+        else:
+            new_string = l.strip()
+        if new_string:
+            new_text_content += new_string + '\n'
+        else:
+            new_text_content += '\n'
+
+with open('POSCAR', 'w') as f:
+    f.write(new_text_content)
+
+print('Output Coordinates')
+print('---------------------------------------------------------------')
+print(new_text_content)
+print('---------------------------------------------------------------')
+    
+print('POSCAR is Changed!')

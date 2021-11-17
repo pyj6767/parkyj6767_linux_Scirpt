@@ -1,0 +1,36 @@
+#!/bin/sh
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+if [ $# -lt 2 ];then
+echo "----------------------------------------"
+echo "No Arguments : User_interactive Mode"
+echo "----------------------------------------"
+read -p 'Method : ' method
+
+
+else
+method=`echo $1`
+fi
+
+#Extract INCAR tag Line
+#-------------------------------------------------------------------------------------
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+echo '---------------' 'Directory : '$dir_name '-----------------'
+inputfile=`ls -l $(pwd)/$dir_name | grep ".inp" | awk '{print $9}'`
+originalmethod=`grep Opt $(pwd)/$dir_name/$inputfile`
+echo 'before : '$originalmethod
+originalmethod=`echo $originalmethod | awk '{print $2}' | awk -F"/" '{print $1}'`
+perl -pi -e 's/'"$originalmethod"'/'"$method"'/' $(pwd)/$dir_name/$inputfile
+
+after=`grep Opt $(pwd)/$dir_name/$inputfile`
+echo 'after  : '$after
+echo '-----------------------------------------------'
+
+done
+
+exit 0
+

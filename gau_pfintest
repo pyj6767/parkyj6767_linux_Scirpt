@@ -1,0 +1,29 @@
+#!/bin/sh
+#Script Name : gau_pfintest | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: Parallel calculation finish test Code
+#Condition : There must be at least 1 work directory in current address
+
+#directorys=`ls -d $(pwd)/*`
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+#num_of_dirs=`echo $directorys | awk -F" " '{print NF}'`
+num_of_dirs=`echo $directorys | wc -w`
+#echo "directorys : $directorys"
+#echo "number of directorys : $num_of_dirs"
+
+for i in $(seq $num_of_dirs)
+do
+#dir_name=`echo $directorys | awk -v n=$i '{ print $n }'`
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+
+if [ -e $(pwd)/$dir_name/*.log ]; then
+echo $dir_name : $(tail -1 $(pwd)/$dir_name/*.log)
+
+else
+echo $dir_name : \<-----------------------There is No .log file.
+
+fi
+
+
+done
+exit 0

@@ -1,0 +1,23 @@
+#!/bin/sh
+#Graphizer
+
+#Input
+modir=$(pwd)
+output_files=`ls -l $(pwd)/extracted_data | awk '{ if ( $2 == "1" ) print $0 }' | awk '{print $9}'`
+num_of_files=`echo $output_files | wc -w`
+
+for a in $(seq $num_of_files)
+do
+if 
+files=`echo $output_files | awk '{print $'"$a"'}'`
+file_list=`echo $file_list "$slice" $a":"$files`
+echo $a":"$files
+done
+
+#echo $file_list
+
+#$(pwd)/extracted_data/
+read -p 'choose x-axis data : ' xdata
+read -p 'choose y-axis data : ' ydata
+
+read -p 'additional data? : ' adata

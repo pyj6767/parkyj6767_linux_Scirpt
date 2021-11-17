@@ -1,0 +1,72 @@
+#!/bin/sh
+#Scripte Name : pincar(Parallel INCAR) | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Discription
+#: Parallel INCAR setting Code
+#Condition : There must be at least 1 work directory in current address
+
+#directorys=`ls -d $(pwd)/*`
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+#num_of_dirs=`echo $directorys | awk -F" " '{print NF}'`
+num_of_dirs=`echo $directorys | wc -w`
+#echo "directorys : $directorys"
+#echo "number of directorys : $num_of_dirs"
+
+read -p "INCAR Tag which you want to change : " Tag
+read -p "INCAR Tage arguments : " argu
+
+
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+line=`grep "$Tag" $(pwd)/$dir_name/INCAR`
+#linenumber=`grep -n "$Tag" $(pwd)/$dir_name/INCAR | awk -F":" '{print}'`
+#echo $linenumber
+#echo $line
+line1=`echo $line | awk '{print $1}'`
+line2=`echo $line | awk '{print $2}'`
+
+
+if [[ $line1 == *$Tag* ]];
+then
+#change=`echo $line | sed "s/#//" | sed -e 's/=/= '"$argu"'/'`
+#change=`echo $line | sed "s/#//" | awk ''`
+#change=`echo $line | sed "s/#//" | sed -e 's/"=*|/= '"$argu"'   |/'`
+removenote=`echo $line | sed "s/#//"`
+check=`echo $removenote | grep "=[ ^I][0-9][0-9]*[ ^I]" | awk '{print length($0)}'`
+
+if [[ $check -gt 0 ]]; then
+change=`echo $removenote | sed -e 's/\=[ ^I][0-9][0-9]*[ ^I]|/= '"$argu"'   |/'`
+else
+change=`echo $removenote | sed -e 's/=/= '"$argu"' /'`
+fi
+
+elif [[ $line2 == *$Tag* ]];
+then
+removenote=`echo $line | sed "s/#//"`
+check=`echo $removenote | grep "=[ ^I][0-9][0-9]*[ ^I]" | awk '{print length($0)}'`
+
+if [[ $check -gt 0 ]]; then
+change=`echo $removenote | sed -e 's/\=[ ^I][0-9][0-9]*[ ^I]|/= '"$argu"'   |/'`
+else
+change=`echo $removenote | sed -e 's/=/= '"$argu"' /'`
+fi
+
+#change2=`echo $change | sed -e 's/\=[ ^I][0-9][0-9]*[ ^I]|/= '"$argu"'   |/g'`
+#change2=`echo $change | awk '$1 == MAGMOM { print $0 }'`
+#change3=`echo $change | sed -e 's/=/= '"$argu"'/g'`
+#change2=`echo $change | awk '$2 == \= '{ sub(*,"$argu",$3); print }'`
+
+fi
+
+echo "======================================================================="
+echo "Directory : " $dir_name
+echo "Before : " $line
+echo "After : " $change
+
+
+sed -i '/'"$Tag"'/c\'" $change"'' $(pwd)/$dir_name/INCAR
+#dir_name=`echo $directorys | awk -v n=$i '{ print $n }'`
+#cat $(pwd)/$dir_name/INCAR | awk -F"|" '{print $}'
+done
+echo "======================================================================="
+exit 0

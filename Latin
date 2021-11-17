@@ -1,0 +1,45 @@
+#!/bin/sh
+#Script Name : Latin | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Discription
+# Lattice Increasing for Volume Change Effect
+#Condition
+#: Latinc.py code should be in your script repository
+#: There are POSCAR, KPOINTS, POTCAR, INCAR, run.sh files in current directory
+
+#Read Input
+echo '-------------------------------------------------'
+read -p 'Increment (default : 0.1, Minus:Decrease) : ' increment
+
+#Default Value Setting($increment)
+if [[ $increment == $String22 ]]
+then
+increment='0.1'
+fi
+
+#For User, Check Input
+echo '-------------------------------------------------'
+echo "Increment = $increment "
+echo '-------------------------------------------------'
+
+echo '--------------------------------------------------'
+read -p 'Iteration (deault : 10) : ' iteration
+
+#Default Value Setting($endencut)
+if [[ $iteration -lt 1 ]] || [[ $iteration == $String22 ]]
+then
+iteration=10
+fi
+
+
+for i in $(seq $iteration)
+do
+Latinc.py '0.1'
+
+#filename setting
+mkdir $i.Latin_$inc
+cp POSCAR KPOINTS POTCAR INCAR run.sh $i.Latin_$inc
+echo $i.Latin_$inc written!!
+
+done
+
+exit 0

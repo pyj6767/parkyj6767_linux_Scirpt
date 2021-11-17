@@ -1,0 +1,13 @@
+#!/bin/sh
+#quadrupole dipole moment extraction
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+grep dipol+quadrupol $(pwd)/$dir_name/OUTCAR | awk '{print $4}' >> quadrupole
+done
+
+exit 0

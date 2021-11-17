@@ -1,0 +1,36 @@
+#!/usr/bin/env python3.9
+#Script Name : #potentialaverage
+
+import os
+import sys
+import numpy as np
+
+pwd=os.getcwd()
+ps=pwd.split('/')
+ps.reverse()
+
+PLfile = open(pwd+'/PLANAR_AVERAGE.dat','r')
+linedata=PLfile.readlines()
+Data=linedata[:]
+exdata=[]
+
+#LP 추출
+for i in range(0, len(Data)):
+    Data[i]=Data[i].replace('\n','').replace('\r','')
+    exdata.append(Data[i].split(' '))
+
+for j in range(0, len(Data)):
+    exdata[j] = [k for k in exdata[j] if k != '']
+
+ydata=[]
+for i in range(0, len(exdata)):
+    ydata.append(float(exdata[i][1]))
+    
+ydata_average=sum(ydata)/len(ydata)
+
+print(ydata_average)
+
+new_text_content=str(ydata_average)
+
+with open(pwd+'/PLA', 'w') as f:
+    f.write(new_text_content)

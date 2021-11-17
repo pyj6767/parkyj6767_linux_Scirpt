@@ -1,0 +1,213 @@
+#!/usr/bin/env python
+#Script Name : Vacuum_distance.py
+#Description
+#: Vacuum_distance for Slab
+
+import sys
+import os
+import numpy as np
+import pandas as pd
+
+os.system('cp POSCAR POSCAR_save')
+os.system('vaspkit -task 411 -file POSCAR')
+os.system('cp POSCAR_REV POSCAR')
+
+
+if len(sys.argv) == 4:
+    user_interactive='off'
+    abc_select=sys.argv[1]
+    jvd=sys.argv[2]
+    vacuum_distance=sys.argv[3]
+
+else:
+    user_interactive='on'
+
+    
+POSCARfile = open('POSCAR','r')
+linedata=POSCARfile.readlines()
+
+for i in range(len(linedata)):
+    if linedata[i].find('Direct')>-1:
+        dc=i
+    elif linedata[i].find('Cartesian')>-1:
+        dc=i
+
+sd=False
+for j in range(len(linedata)):
+    if linedata[j].find('Selective')>-1:
+        sd = True
+
+if sd==True:
+    sd=''
+elif sd==False:
+    sd='Selective Dynamics\n'
+
+lattice_parameters=linedata[2:5]
+coordinates=linedata[dc+1:]
+
+#Lattice Parameter Refine
+LP=[]
+for i in range(len(lattice_parameters)):
+    lattice_parameters[i]=lattice_parameters[i].replace('\n','').replace('\r','')
+    LP.append(lattice_parameters[i].split(' '))
+
+for j in range(len(LP)):
+    LP[j] = [float(k) for k in LP[j] if k != '']
+
+
+#Coordination Refine
+coordi=[]
+for i in range(len(coordinates)):
+    coordinates[i]=coordinates[i].replace('\n','').replace('\r','')
+    coordi.append(coordinates[i].split(' '))
+
+for j in range(len(coordi)):
+    coordi[j] = [k for k in coordi[j] if k != '']
+
+
+if user_interactive=='on':
+    abc_select=input('Select Slab Axis (a : 1, b : 2, c : 3) : ')
+
+if abc_select=='1':
+    abc_select='a'
+elif abc_select=='2':
+    abc_select='b'
+else:
+    abc_select='c'
+
+try:
+    r=coordi[0][3]
+except:
+    print('POSCAR File does not contain T/F Value!!')
+    quit()
+    
+axis_set=[]
+tf_set=[]
+for i in coordi:
+    if abc_select=='a':
+        axis_set.append(i[0])
+        tf_set.append([i[3],i[4],i[5]])
+        Axis_LP=LP[0][0]
+    elif abc_select=='b':
+        axis_set.append(i[1])
+        tf_set.append([i[3],i[4],i[5]])
+        Axis_LP=LP[1][1]
+    elif abc_select=='c':
+        axis_set.append(i[2])
+        tf_set.append([i[3],i[4],i[5]])
+        Axis_LP=LP[2][2]
+
+tf_set=['{} {} {}'.format(i[0],i[1],i[2]) for i in tf_set]
+coor_dict={i:j for i,j in zip(axis_set,tf_set)}
+coor_dict= sorted(coor_dict.items(), reverse=True)
+dict_axis={i[0]:i[1] for i in coor_dict}
+
+axis_set=list(set(axis_set))
+axis_set.sort(reverse=True)
+
+axis_min=min(axis_set)
+axis_max=max(axis_set)
+
+current_top_distance=float(Axis_LP)-float(axis_max)
+current_bottom_distance=float(axis_min)-0
+current_vacuum_distance=current_top_distance+current_bottom_distance
+
+while True:
+    if user_interactive=='on':
+        print('Select Justice of Vacuum Distance')
+        print('---------------------------------------------------------------')
+        print('top Distance : {}'.format(current_top_distance))
+        print('bottom Distance : {}'.format(current_bottom_distance))
+        print('top+bottom Distance : {}'.format(current_vacuum_distance))
+        print('---------------------------------------------------------------')
+        print('1 : Only Top Distance')
+        print('2 : Only Bottom Distance')
+        print('3 : Top + Bottom Distance')
+        jvd=input('Select Justice of Vacuum Distance : ')
+    
+    try:
+        jvd=int(jvd)
+        if jvd==1:
+            current_vacuum_distance=current_top_distance
+            break
+        elif jvd==2:
+            current_vacuum_distance=current_bottom_distance
+            break
+        elif jvd==3:
+            current_vacuum_distance=current_vacuum_distance
+            break
+        else:
+            print('Input must be 1 or 2')
+    except:
+        print('Input must be int')
+
+
+
+
+while True:
+    if user_interactive=='on':
+        print('Net {}-Axis Coordinates'.format(abc_select))
+        print('---------------------------------------------------------------')
+        print('{}-Axis Lattice Parameter : {}'.format(abc_select,Axis_LP))
+        for i in range(len(axis_set)):
+            print('{} : {} {}'.format(i,axis_set[i],dict_axis[axis_set[i]]))
+        print('---------------------------------------------------------------')
+        print()
+
+        vacuum_distance=input('Input Vacuum Distance(Default : 10 A) : ')
+
+    try:
+        vacuum_distance=float(vacuum_distance)
+        break
+    except:
+        print('Setting Default Distance')
+        vacuum_distance=10
+        break
+
+if jvd==1:
+    axis_length=vacuum_distance-current_bottom_distance
+    difference=axis_length-current_top_distance
+elif jvd==2:
+    axis_length=vacuum_distance-current_top_distance
+    difference=axis_length-current_bottom_distance
+elif jvd==3:
+    axis_length=vacuum_distance-current_bottom_distance
+    difference=axis_length-current_top_distance
+
+if abc_select=='a':
+    LP[0][0]=LP[0][0]+difference
+elif abc_select=='b':
+    LP[1][1]=LP[1][1]+difference
+elif abc_select=='c':
+    LP[2][2]=LP[2][2]+difference
+
+new_text_content=''
+
+with open('POSCAR','r') as f:
+    lines = f.readlines()
+    for i, l in enumerate(lines):
+
+        if i==dc:
+            new_string = sd+l.strip()
+
+        elif i > 1 and i < 5:
+            new_string = '{} {} {}'.format(LP[i-2][0],LP[i-2][1],LP[i-2][2])
+            
+        else:
+            new_string = l.strip()
+
+        if new_string:
+            new_text_content += new_string + '\n'
+        else:
+            new_text_content += '\n'
+
+with open('POSCAR','w') as f:
+    f.write(new_text_content)
+
+print('Output Coordinates')
+print('---------------------------------------------------------------')
+print(new_text_content)
+print('---------------------------------------------------------------')
+
+print('POSCAR is Written!')
+

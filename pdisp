@@ -1,0 +1,72 @@
+#!/bin/sh
+
+read -p '1) cubic / 2) tetragonal : ' choice
+read -p 'divide = ' divide
+read -p 'num_of_work = ' num_of_work
+
+if [ $choice == "1" ];then
+echo 'your choice : cubic'
+c1=0.520923017999997
+c2=0.969211995999998
+c3=0.626658022
+c4=0.142449005999999
+c5=0.626658022
+
+ref1=0.5
+ref2=1
+ref3=0.5
+ref4=0
+ref5=0.5
+
+else
+echo 'your choice : tetragonal'
+c1=0.520923017999997
+c2=0.969211995999998
+c3=0.142449005999999
+c4=0.626658022
+c5=0.626658022
+
+ref1=0.5
+ref2=1
+ref3=0
+ref4=0.5
+ref5=0.5
+fi
+
+dif1=`echo $c1 $ref1 | awk '{d=$1-$2; print d}' | awk '{di=$0/'"$divide"'; print di}'`
+dif2=`echo $c2 $ref2 | awk '{d=$1-$2; print d}' | awk '{di=$0/'"$divide"'; print di}'`
+dif3=`echo $c3 $ref3 | awk '{d=$1-$2; print d}' | awk '{di=$0/'"$divide"'; print di}'`
+dif4=`echo $c4 $ref4 | awk '{d=$1-$2; print d}' | awk '{di=$0/'"$divide"'; print di}'`
+dif5=`echo $c5 $ref5 | awk '{d=$1-$2; print d}' | awk '{di=$0/'"$divide"'; print di}'`
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+
+for i in $(seq $num_of_work)
+do
+r1=`echo $ref1 $dif1 $i | awk '{r=$1+($2*$3); printf("%.16f",r)}'`
+r2=`echo $ref2 $dif2 $i | awk '{r=$1+($2*$3); printf("%.16f",r)}'`
+r3=`echo $ref3 $dif3 $i | awk '{r=$1+($2*$3); printf("%.16f",r)}'`
+r4=`echo $ref4 $dif4 $i | awk '{r=$1+($2*$3); printf("%.16f",r)}'`
+r5=`echo $ref5 $dif5 $i | awk '{r=$1+($2*$3); printf("%.16f",r)}'`
+
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+
+
+s1=`sed -n '9p' $(pwd)/$dir_name/POSCAR | awk '{$3='"$r1"'; print $0}'`
+s2=`sed -n '10p' $(pwd)/$dir_name/POSCAR | awk '{$3='"$r2"'; print $0}'`
+s3=`sed -n '11p' $(pwd)/$dir_name/POSCAR | awk '{$3='"$r3"'; print $0}'`
+s4=`sed -n '12p' $(pwd)/$dir_name/POSCAR | awk '{$3='"$r4"'; print $0}'`
+s5=`sed -n '13p' $(pwd)/$dir_name/POSCAR | awk '{$3='"$r5"'; print $0}'`
+
+
+sed -i '9s/.*/  '"$s1"'/' $(pwd)/$dir_name/POSCAR
+sed -i '10s/.*/  '"$s2"'/' $(pwd)/$dir_name/POSCAR
+sed -i '11s/.*/  '"$s3"'/' $(pwd)/$dir_name/POSCAR
+sed -i '12s/.*/  '"$s4"'/' $(pwd)/$dir_name/POSCAR
+sed -i '13s/.*/  '"$s5"'/' $(pwd)/$dir_name/POSCAR
+
+done
+
+exit 0

@@ -1,0 +1,58 @@
+#!/bin/sh
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+echo '{ 1 : Hour / 2 : Minuite / 3 : Second }'
+echo '------------------------------------------------------------'
+read -p 'Select Time Scale (default : second) : ' unit
+echo '------------------------------------------------------------'
+
+#-------------------------------------------------------------------------------------
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+time1=`grep "Leave Link" $(pwd)/$dir_name/*.log | head -1 | awk '{print $8}'`
+time2=`grep "Leave Link" $(pwd)/$dir_name/*.log | tail -1 | awk '{print $8}'`
+
+hour1=`echo $time1 | awk -F":" '{print $1}'`
+min1=`echo $time1 | awk -F":" '{print $2}'`
+sec1=`echo $time1 | awk -F":" '{print $3}'`
+
+hour2=`echo $time2 | awk -F":" '{print $1}'`
+min2=`echo $time2 | awk -F":" '{print $2}'`
+sec2=`echo $time2 | awk -F":" '{print $3}'`
+
+hour=`echo $hour1 $hour2 | awk '{h=$2-$1; print h}'`
+min=`echo $min1 $min2 | awk '{m=$2-$1; print m}'`
+sec=`echo $sec1 $sec2 | awk '{s=$2-$1; print s}'`
+
+total_time=`echo $hour $min $sec | awk '{total=($1*3600)+($2*60)+$3; print total}'`
+
+
+if [ $unit == '1' ];then
+total_time=`echo $total_time | awk '{total=$1/3600; print total}'`
+unitname='hours'
+
+elif [ $unit == '2' ];then
+total_time=`echo $total_time | awk '{total=$1/60; print total}'`
+unitname='min'
+
+else
+unitname='sec'
+
+fi
+
+echo '======================================================='
+echo 'Directory : ' $dir_name ''
+echo '--------------------------------------------------------'
+echo $total_time $unitname
+echo '======================================================='
+
+echo $total_time >> gaussian_time_$unitname
+
+done
+
+echo 'saved gaussian_time_'$unitname 'file!'
+echo '--------------------------------------------------------'
+exit 0

@@ -1,0 +1,85 @@
+#!/bin/sh
+#Script Name : jobkwell | Made by Hyeon Kim
+#Description
+#: Print RMM, dE, E0 ....
+
+if [[ $# -gt 0 ]];then
+   user=`whoami`
+   taillength=$1
+else
+   user=`whoami`
+   taillength=1
+fi
+
+#JOBS=`qstat -u $user -f`
+#address=`echo "$JOBS"|awk 'BEGIN{button = 0} {if( $1 == "init_work_dir" ){button=1;printf("%s",$3)} else if( $1 == "request_version" ){button=0;;printf("\n")} else if( button == 1 ){printf("%s",$1)}}'`
+
+#num_of_jobs=`echo $address | wc -w`
+
+#echo "==========================================================================================="
+#for i in $(seq $num_of_jobs)
+#do
+#dir_name=`echo $address | awk '{print $'"$i"'}'`
+
+#if [ -e $dir_name/relax.out ]; then
+#echo "Directory : "$dir_name
+#echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+#tail -$taillength $dir_name/relax.out
+#echo "-------------------------------------------------------------------------------------------"
+
+#else
+#echo "Directory : "$dir_name
+#echo "- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -"
+#echo "There is No relax.out file."
+#echo "-------------------------------------------------------------------------------------------"
+
+#fi
+
+
+#done
+#echo "==========================================================================================="
+#exit 0
+
+RMS=`grep RMS OUTCAR | awk '{printf "%-4d %-4s %-8s %-4s %-8s\n", NR, "Max=", $5, "RMS=", $6}'`
+
+
+
+I_ENG=`grep "mag=" relax.out | awk '{printf "%-2s %-14s %-3s %-14s %-3s %-12s %-4s %-10s\n", $2, $3, $4, $5, "dE" , $8, $9, $10}'`
+if [[ $(grep "RMM" relax.out) ]]
+then
+E_ENG=`grep -B1 "mag=" relax.out | grep "RMM" | awk '{printf "%-4s %-3s %-2s %-19s %-3s %-12s\n", $1, $2, "E=", $3,"dE=", $4}'`
+elif [[ $(grep "CGA" relax.out) ]]
+then
+E_ENG=`grep -B4 "mag=" relax.out | grep "CGA" | awk '{printf "%-4s %-3s %-2s %-19s %-3s %-12s\n", $1, $2, "E=", $3,"dE=", $4}'`
+elif [[ $(grep "DAV" relax.out) ]]
+then
+E_ENG=`grep -B1 "mag=" relax.out | grep "DAV" | awk '{printf "%-4s %-3s %-2s %-19s %-3s %-12s\n", $1, $2, "E=", $3,"dE=", $4}'`
+fi
+
+echo "RMS"
+echo "$RMS"
+echo " "
+echo "I_ENG"
+echo "$I_ENG"
+echo " "
+echo "E_ENG"
+echo "$E_ENG"
+
+
+#paste RMS.txt I_ENG.txt E_ENG.txt > RMSENG.txt
+
+echo "=================================================================================================================================================================="
+echo "Num  [Ionic Relax Force        ]        [Ionic Relax Energy Iterations                                   ]      [Electronic Relax Energy Iterations         ]"
+echo "=================================================================================================================================================================="
+{ echo "$RMS" & echo "$I_ENG" & echo "$E_ENG" }
+echo "=================================================================================================================================================================="
+if [[ $(grep "reached required accuracy - stopping structural energy minimisation" relax.out) ]]
+then
+echo " RESULT : reached required accuracy"
+else
+echo " RESULT : !!Relaxation Failed!!"
+fi
+echo "=================================================================================================================================================================="
+
+
+#rm RMS.txt I_ENG.txt E_ENG.txt RMSENG.txt

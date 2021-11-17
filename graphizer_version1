@@ -1,0 +1,2791 @@
+#!/usr/bin/env python3.9
+#script name : graphizer_version1.0
+#Temporary version
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import os
+import pprint
+
+#
+
+plt.clf() #초기에 모든 matplotlib object 제거
+
+pwd=os.getcwd()
+ps=pwd.split('/')
+ps.reverse()
+
+file_list=os.listdir(pwd+'/extracted_data')
+
+#output파일을 보기 좋게 출력해주기
+def outputfile_printer(file_list):
+    outputlist_w_label=[ str(j)+':'+str(i) for i,j in zip(file_list, range(1,len(file_list)+1))] #번호와 함께 만드는 리스트
+    while len(outputlist_w_label)!=0: #리스트 개수가 0이 될 때까지 반복
+        if len(outputlist_w_label)>3: #3개 이상이면
+            print(' %-30s   %-30s   %-30s ' % (outputlist_w_label[0],outputlist_w_label[1],outputlist_w_label[2])) #앞쪽 3개 출력
+            outputlist_w_label=outputlist_w_label[3:] #앞의 3개 자르기
+        elif len(outputlist_w_label)==3: #3개 이면
+            print(' %-30s   %-30s   %-30s ' % (outputlist_w_label[0],outputlist_w_label[1],outputlist_w_label[2])) #앞쪽 3개 출력
+            outputlist_w_label.pop() #원소 제거 3번
+            outputlist_w_label.pop()
+            outputlist_w_label.pop()
+        elif len(outputlist_w_label)==2: #2개 이면
+            print(' %-30s   %-30s ' % (outputlist_w_label[0],outputlist_w_label[1])) #앞쪽 2개 출력
+            outputlist_w_label.pop() #원소 제거 2번
+            outputlist_w_label.pop()
+        elif len(outputlist_w_label)==1: #1개 이면
+            print(' %-30s ' % (outputlist_w_label[0])) #앞쪽 1개 출력
+            outputlist_w_label.pop()
+            
+#data sorting : 원하는 outputfile의 데이터를 추출
+def datasorting(datanumber,pwd,file_list):
+    data=open(pwd+'/extracted_data/'+file_list[datanumber], 'r') #파일을 열어서
+    data=data.readlines() #readlines
+    try:
+        float(data[0].replace('\n','')) #숫자로 표현되면
+        data=[float(i.replace('\n','')) for i in data] #숫자로 가져오기
+        index=[j for j in range(len(data))] #숫자로 표현된다면, 그래프 그릴 때 필요한 등차수열을 필요 없음
+        return data, index
+    except: #숫자로 표현되지 않는다면
+        data=[i.replace('\n','') for i in data] #해당 문자열 그대로 가져오기
+        index=[j for j in range(len(data))] #문자열이면, 그래프 그릴 때 등차수열이 필요함
+        return data, index
+    
+def outputfile_input(pwd,file_list,speakstring):
+    outputfile_printer(file_list)
+    print('---------------------------------------------------------------------------------------------')
+    user_output_number=input('Select Output File For '+speakstring+' : ')
+    if user_output_number=='q':
+        return 'q', 'q', 'q'
+    try:
+        user_output_number=int(user_output_number)-1
+
+    except:
+        print('Input must be int')
+        outputfile_input(pwd,file_list,speakstring)
+    [data,index]=datasorting(user_output_number,pwd,file_list)
+    return data,index,user_output_number
+
+#데이터가 문자열인 경우, 너무 겹쳐지지 않게 처리하기 (선택적)
+def ifdatastring(index,data):
+    print('x(y) 축 Label 어떻게 처리할래')
+    datastring_input=int(input('홀수만 남길래요(1) / 짝수만 남길래요(2) / 둘 다 남길래요(3) / 직접 입력할래요 (4) / 되돌릴래요(5)'))
+    if datastring_input==1: #홀수
+        index = [a for a in index if a%2==0]
+        data = [data[a] for a in index]
+    elif datastring_input==2: #짝수
+        index = [a for a in index if a%2==1]
+        data = [data[a] for a in index]
+    elif datastring_input==3:
+        pass
+    elif datastring_input==4:
+        pass
+    else:
+        print('다시 입력해줘요')
+        [index,data]=ifdatastring(index,data)
+    return index, data
+
+
+
+#print_style
+#===========================================================================================================================
+def printlinestyle():
+    print('Line Style Selection')
+    styledict={1:'solid', 2:'dashed', 3:'dashdot', 4:'dotted', 'string':'individual input'}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printlinestyle()
+        else:
+            return styledict[styleinput]
+    except:
+        styleinput=styleinput
+        return styleinput
+
+def printsolid_capstyle():
+    print('Solid Cap Style Selection')
+    styledict={1:'round', 2:'butt', 3:None}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printsolid_capstyle()
+        else:
+            return styledict[styleinput]
+    except:
+        printsolid_capstyle()
+
+def printdash_capstyle():
+    print('Dash Cap Style Selection')
+    styledict={1:'round', 2:'butt', 3:None}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > 3 or styleinput < 1:
+            printdash_capstyle()
+        else:
+            return styledict[styleinput]
+    except:
+        printdash_capstyle()
+    
+def printwidth():
+    print('Width(float)')
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=float(styleinput)
+        return styleinput
+    except:
+        printwidth()
+
+def printmarker():
+    print('Marker Selection')
+    styledict={'1.point':".", '2.pixel':",", '3.circle':"o", '4.triangle_down':"v", '5.triangle_up':"^", '6.triangle_left':"<", '7.triangle_right':">", '8.tri_down':"1", 
+           '9.tri_up':"2", '10.tri_left':"3", '11.tri_right':"4", '12.octagon':"8", '13.square':"s", '14.pentagon':"p", '15.plus(filled)':"P", '16.star':"*", '17.hexagon1':"h", 
+           '18.hexagon2':"H", '19.plus':"+", '20.x':"x", '21.x(filled)':"X", '22.diamond':"D", '23.thin_diamond':"d", '21.vline':"|", '22.hline':"_", 'string':'individual'}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printmarker()
+        else:
+            return styledict[list(styledict.keys())[styleinput-1]]
+    except:
+        styleinput=styleinput
+        return styleinput
+    
+def printmarkersize():
+    print('Markersize(Float)')
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=float(styleinput)
+        return styleinput
+    except:
+        printmarkersize()
+
+def printcolor():
+    print('Color Selection')
+    styledict={1:'blue', 2:'green', 3:'red', 4:'cyan', 5:'magenta', 6:'yellow', 7:'black', 8:'white', 'Hex code':'individual'}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printcolor()
+        else:
+            return styledict[styleinput]
+    except:
+        styleinput=styleinput
+        return styleinput
+    
+def printlabel():
+    print('Label Input(string)')
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    return styleinput
+    
+def printlabels(datalist):
+    print('Label Input(list)')
+    styleinput=[]
+    for a in range(len(datalist)):
+        s=input('Enter : ')
+        if s=='q':
+            return 'q'
+        styleinput.append(s)
+    return styleinput
+
+def printsize():
+    print('Size Input(Float)')
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=float(styleinput)
+        return styleinput
+    except:
+        printmarkersize()
+
+def printalpha(name):
+    print(name+' Input(0~1 Float)')
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=float(styleinput)
+        if styleinput > 1:
+            printalpha()
+        else:
+            return styleinput
+    except:
+        printalpha()
+
+def printalign():
+    print('Align Selection')
+    styledict={1:'center', 2:'edge'}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > 2 or styleinput < 1:
+            printalign()
+        else:
+            return styledict[styleinput]
+    except:
+        printalign()
+        
+def printcmap():
+    print('cmap Selection')
+    cmaps = plt.colormaps()
+    styledict={i+1:j for i, j in enumerate(cmaps)}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printcmap()
+        else:
+            return styledict[styleinput]
+    except:
+        printcmap()
+        
+def printbins():
+    print('bins input')
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput < 1:
+            printbins()
+        else:
+            return styleinput
+    except:
+        printbins()
+        
+def printhisttype():
+    print('histogram type Selection')
+    styledict={1:'bar', 2:'barstacked', 3:'step', 4:'stepfilled'}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printhisttype()
+        else:
+            return styledict[styleinput]
+    except:
+        printhisttype()
+    
+def printdensity():
+    print('density Selection')
+    styledict={1:True, 2:False}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printdensity()
+        else:
+            return styledict[styleinput]
+    except:
+        printdensity()
+    
+       
+
+def printerr(datalist):
+    print('err axis input')
+    erraxisdict={1:'x', 2:'y'}
+    print(erraxisdict)
+    erraxis=input('Enter : ')
+    if erraxis=='q':
+        return 'q'
+    print('err type input')
+    errtypedict={1:'symmetrical', 2:'nonsymmetrical'}
+    print(errtypedict)
+    errtype=input('Enter : ')
+    if errtype=='q':
+        return 'q'
+    try:
+        erraxis=int(erraxis)
+        errtype=int(errtype)
+        if erraxis > len(erraxisdict) or erraxis < 1 or errtype > len(errtypedict) or errtype < 1:
+            printerr()
+        else:
+            if erraxis==1:
+                printxerr(datalist, errtype)
+            elif erraxis==2:
+                printyerr(datalist, errtype)
+            else:
+                printerr()
+    except:
+        printerr()
+
+    
+def printxerr(datalist,errtype):
+    if errtype==1:
+        print('xerr input(Symmetrical), 1D-list')
+        styleinput=[]
+        for a in range(len(datalist)):
+            s=input('Enter : ')
+            if s=='q':
+                return 'q'
+            styleinput.append(s)
+        return styleinput
+    
+    elif errtype==2:
+        print('xerr input(Symmetrical), 2D-list')
+        styleinput1=[]
+        styleinput2=[]
+        for a in range(len(datalist)):
+            s1=input('Enter(min) : ')
+            if s1=='q':
+                return 'q'
+            s2=input('Enter(max) : ')
+            if s2=='q':
+                return 'q'
+            styleinput1.append(s1)
+            styleinput2.append(s2)
+        styleinput=[tuple(styleinput1),tuple(styleinput2)]
+        return styleinput
+    
+def printyerr(datalist,errtype):
+    if errtype==1:
+        print('yerr input(Symmetrical), 1D-list')
+        styleinput=[]
+        for a in range(len(datalist)):
+            s=input('Enter : ')
+            if s=='q':
+                return 'q'
+            styleinput.append(s)
+        return styleinput
+    
+    elif errtype==2:
+        print('yerr input(Symmetrical), 2D-list')
+        styleinput1=[]
+        styleinput2=[]
+        for a in range(len(datalist)):
+            s1=input('Enter(min) : ')
+            if s1=='q':
+                return 'q'
+            s2=input('Enter(max) : ')
+            if s2=='q':
+                return 'q'
+            styleinput1.append(s1)
+            styleinput2.append(s2)
+        styleinput=[tuple(styleinput1),tuple(styleinput2)]
+        return styleinput
+    
+def printuplims():
+    print('uplims Selection')
+    styledict={1:True, 2:False}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printuplims()
+        else:
+            return styledict[styleinput]
+    except:
+        printuplims()
+        
+def printlolims():
+    print('uplims Selection')
+    styledict={1:True, 2:False}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printlolims()
+        else:
+            return styledict[styleinput]
+    except:
+        printlolims()
+        
+def printxlolims():
+    print('uplims Selection')
+    styledict={1:True, 2:False}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printxlolims()
+        else:
+            return styledict[styleinput]
+    except:
+        printxlolims()
+        
+def printxuplims():
+    print('uplims Selection')
+    styledict={1:True, 2:False}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printxuplims()
+        else:
+            return styledict[styleinput]
+    except:
+        printxuplims()
+        
+def printautopact():
+    print('autopact input (sosujum)')
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput < 0:
+            printautopact()
+        else:
+            styleinput='%.'+styleinput+'f%%'
+            return styleinput
+    except:
+        printautopact()
+        
+def printstartangle():
+    print('startangle input')
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=float(styleinput)
+        return styleinput
+    except:
+        printstartangle()
+        
+def printcounterclock():
+    print('counterclock Selection')
+    styledict={1:True, 2:False}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printcounterclock()
+        else:
+            return styledict[styleinput]
+    except:
+        printcounterclock()
+        
+def printexplode(datalist):
+    print('explode input')
+    styleinput=[]
+    for a in range(len(datalist)):
+        s=input('Enter : ')
+        if s=='q':
+            return 'q'
+        styleinput.append(s)
+    return styleinput
+
+def printshadow():
+    print('shadow Selection')
+    styledict={1:True, 2:False}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printshadow()
+        else:
+            return styledict[styleinput]
+    except:
+        printshadow()
+        
+def printwedgeprops(styleoutput={'width':None, 'edgecolor':None, 'linewidth':None}):
+    print('wedgeprops Selection')
+    styledict={1:width, 2:edgecolor, 3:linewidth}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    #if styleinput=='q':
+    #    return styleoutput
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printshadow()
+        else:
+            if styleinput==1:
+                w=printwidth()
+                styleoutput[width]=w
+                printwedgeprops(styleoutput)
+            elif styleinput==2:
+                e=printcolor()
+                styleoutput[edgecolor]=e
+                printwedgeprops(styleoutput)
+            elif styleinput==3:
+                lw=printwidth()
+                styleoutput[width]=lw
+                printwedgeprops(styleoutput)
+    except:
+        printshadow()
+    return styleoutput
+
+#label, legend, xlim, ylim, axis, xscale, yscale, grid, xtick, yticks, tick_params, title, text, twinx, twiny  -  style editer
+def printname(topic):
+    print(topic +' Input(string)')
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    return styleinput
+
+def printfontdict_title_legend(fontdict):
+    print('font edit')
+    if fontdict==None:
+        fontdict={'family': None, 'color': None, 'style': None, 'size': None, 'weight' : None, 'alpha' : None}
+    fontlist=list(fontdict.keys())
+    
+    print('1.family, 2.color, 3.style, 4.size, 5.weight, 6.alpha')
+    print('Current Parameters : ', fontlist)
+    
+    styleinput1=int(input('Enter : '))
+    if styleinput1==1:
+        print('family list')
+        mat_familylist=['serif', 'sans-serif', 'cursive', 'fantasy', 'monospace','Times New Roman','Times','Palatino','Charter','Arial']
+        mat_familydict={int(i)+1 : j for i,j in enumerate(mat_fontlist)}
+        print(mat_familydict)
+        styleinput2=int(input('Enter : '))
+        fontdict['family']=mat_familylist[styleinput2-1]
+    elif styleinput1==2:
+        fontdict['color']=printcolor()
+    elif styleinput1==3:
+        mat_stylelist=['normal', 'italic', 'oblique']
+        mat_styledict={int(i)+1 : j for i,j in enumerate(mat_stylelist)}
+        print(mat_styledict)
+        styleinput2=int(input('Enter : '))
+        fontdict['style']=mat_stylelist[styleinput2-1]
+    elif styleinput1==4:
+        fontdict['size']=printsize()
+    elif styleinput1==5:
+        mat_weightlist=['light', 'normal', 'medium', 'semibold', 'bold', 'heavy', 'ultrabold', 'ultralight']
+        mat_weightdict={int(i)+1 : j for i,j in enumerate(mat_stylelist)}
+        print(mat_styledict)
+        styleinput2=int(input('Enter : '))
+        fontdict['weight']=mat_stylelist[styleinput2-1]
+    elif styleinput1==6:
+        fontdict['alpha']=printalpha('Alpha(Transparency)')
+        
+    return fontdict
+
+def printpad():
+    print('pad input')
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=float(styleinput)
+        if styleinput < 0:
+            printpad()
+        else:
+            return styleinput
+    except:
+        printpad()
+        
+def printloc(topic):
+    print('loc input')
+    if topic=='xlabel':
+        styledict={1:'left', 2:'center', 3:'right'}
+        print(styledict)
+        styleinput=input('x Enter : ')
+    elif topic=='ylabel':
+        styledict={1:'bottom', 2:'center', 3:'top'}
+        print(styledict)
+        styleinput2=input('y Enter : ')
+    elif topic=='title':
+        styledict={1:'left', 2:'center', 3:'right'}
+        print(styledict)
+        styleinput2=input('Enter : ')
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printloc(topic)
+        else:
+            return styledict[styleinput]
+    except:
+        printloc(topic)
+        
+def printlegendloc():
+    print('legend loc input')
+    styledict={1:'best', 2:'upper right', 3:'upper left', 4:'lower left', 5:'lower right', 6:'right', 7:'center left', 8:'center right', 9:'lower center', 10:'upper center', 11:'center'}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printlegendloc(topic)
+        else:
+            return styledict[styleinput]
+    except:
+        printlegendloc(topic)
+        
+def printncol():
+    print('ncol input')
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        return styleinput
+    except:
+        printncol()
+
+def printbool(topic): #legend_frameon, grid_bool
+    print(topic+' selection')
+    styledict={1:True, 2:False}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printbool(topic)
+        else:
+            return styledict[styleinput]
+    except:
+        printbool(topic)
+
+        
+def printaxis(topic):
+    print(topic+' axis selection')
+    styledict={1:'both', 2:'x', 3:'y'}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printaxis(topic)
+        else:
+            return styledict[styleinput]
+    except:
+        printaxis(topic)
+    
+def printscalefunction(topic):
+    print(topic+' scale function')
+    styledict={1:'function', 2:'functionlog', 3:'symlog', 4:'linear', 5:'log', 6:'logit'}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printscalefunction(topic)
+        else:
+            return styledict[styleinput]
+    except:
+        printscalefunction(topic)
+        
+def printfloat(topic): #linewidth, rotation,
+    print(topic+ 'Input')
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=float(styleinput)
+        return styleinput
+    except:
+        printfloat(topic)
+
+def printtickrange(topic): #
+    print(topic+' ticks range Input')
+    styleinput1=float(input('tick minimum : '))
+    if styleinput1=='q':
+        return 'q'
+    styleinput2=float(input('tick maximum : '))
+    if styleinput2=='q':
+        return 'q'
+    styleinput3=float(input('tick increment : '))
+    if styleinput3=='q':
+        return 'q'
+    try:
+        styleinput1=float(styleinput1)
+        styleinput2=float(styleinput2)
+        styleinput3=float(styleinput3)
+        styleinput=np.arange(styleinput1, styleinput2, styleinput3)
+        return styleinput
+    except:
+        printtickrange(topic)
+        
+def printdirection(topic):
+    print(topic+' direction Input')
+    styledict={1:'in', 2:'out', 3:'inout'}
+    print(styledict)
+    styleinput=input('Enter : ')
+    if styleinput=='q':
+        return 'q'
+    try:
+        styleinput=int(styleinput)
+        if styleinput > len(styledict) or styleinput < 1:
+            printdirection(topic)
+        else:
+            return styledict[styleinput]
+    except:
+        printdirection(topic)
+        
+def labelcombine(namelist):
+    labelname=' or'.join(namelist)
+    return labelname
+
+
+
+#==========================================================================================================================
+def User_Interaction():
+    print('Your Choice')
+    print('-----------------------------------------------')
+    print('1.Graph Type : 그래프 선택')
+    print('2.Graph Style : 해당 그래프에 맞는 작업 선택')
+    print('3.Delete Graph : 지우고자 하는 그래프 선택')
+    print('4.Axis Label(Axis Title) : 축 제목 설정')
+    print('5.Legend(Data Identify) : 범례')
+    print('6.Lim & Axis Range : 축 범위 설정')
+    print('7.Scale : 축 스케일 설정(Log, symlog, ...)')
+    print('8.Grid : 그리드 설정')
+    print('9.Ticks : 축 눈금 설정(개별 설정 요구 항복)')
+    print('10.Ticks : 눈금 스타일 설정(rotation)')
+    print('11.title : 그래프 제목 설정')
+    print('12. In graph text : 그래프 내부 텍스트 삽입')
+    print('13. Twinx or Twiny : 양쪽')
+    print('14. Subplot : Subplot으로 변경')
+    print('15. Subplot - 축 공유')
+    print('-----------------------------------------------')
+    user_choice=input('Input Your Work (Exit:q) : ')
+    try:
+        user_choice=int(user_choice)
+        if user_choice > 13 or user_choice < 1:
+            User_Interaction()
+        else:
+            return user_choice
+    except:
+        if user_choice=='q':
+            return user_choice
+        else:
+            User_Interaction()
+
+def user1(pwd,file_list):
+    print('1.Line, 2.Bar(세로), 3.Barh(가로), 4.Scatter, 5.Scatter(3D)(Not Yet) 6.Errorbar, 7.Histogram, 8.Pie Chart, 9.Heatmap, 10.Horizontal Line, 11.Vertical Line')
+    user1_input=input('Input Your Work (back:q) : ')
+    
+    if user1_input=='q':
+        return 'c', 'c', 'q', 'c'
+    try:
+        user1_input=int(user1_input)
+    except:
+        print('Input must be int')
+        user1_End=True
+            
+    if user1_input==1:
+        [Xdata,xindex,x_file_number]=outputfile_input(pwd,file_list,'X-Axis data of Line Graph')
+        if x_file_number=='q':
+            return 'c', 'c', 'c', 'q'
+        [Ydata,yindex,y_file_number]=outputfile_input(pwd,file_list,'Y-Axis data of Line Graph')
+        if y_file_number=='q':
+            return 'c', 'c', 'c', 'q'
+            
+        if type(Xdata[0])==float or type(Xdata[0])==int and type(Ydata[0])==float or type(Ydata[1])==int:
+            total_graph = userline_style(Xdata, Ydata, line_linestyle='solid', line_label=file_list[y_file_number])
+        elif type(Xdata[0])==str and type(Ydata[0])==float or type(Ydata[1])==int:
+            total_graph = userline_style(xindex, Ydata, line_linestyle='solid', line_label=file_list[y_file_number])
+        elif type(Xdata[0])==float or type(Xdata[0])==int and type(Ydata[0])==str:
+            total_graph = userline_style(Xdata, yindex, line_linestyle='solid', line_label=file_list[y_file_number])
+        elif type(Xdata[0])==str and type(Ydata[0])==str:
+            print('Two Datas are str data')
+            return 'c', 'c', 'c', 'q'
+        else:
+            print('error')
+            return 'c', 'c', 'c', 'q'
+        file_numbers=[x_file_number, y_file_number]
+        relation=' vs '.join([file_list[i] for i in file_numbers])
+        if len(total_graph)!=0:
+            total_graph[0]=total_graph[0]+'('+relation+')'
+            return total_graph, file_numbers, 'c', 'c'
+            
+    elif user1_input==2:
+        [Xdata,xindex,x_file_number]=outputfile_input(pwd,file_list,'X-Axis data of Bar Graph')
+        if x_file_number=='q':
+            return 'c', 'c', 'c', 'q'
+        [Ydata,yindex,y_file_number]=outputfile_input(pwd,file_list,'Y-Axis data of Bar Graph')
+        if y_file_number=='q':
+            return 'c', 'c', 'c', 'q'
+        if type(Xdata[0])==float or type(Xdata[0])==int and type(Ydata[0])==float or type(Ydata[1])==int:
+            cal_width=(max(Xdata)-min(Xdata))/len(Xdata)*0.5
+            total_graph = userbar_style(Xdata, Ydata, bar_width=cal_width, bar_label=file_list[y_file_number])
+        elif type(Xdata[0])==str and type(Ydata[0])==float or type(Ydata[1])==int:
+            cal_width=(max(xindex)-min(xindex))/len(xindex)*0.5
+            total_graph = userbar_style(xindex, Ydata, bar_width=cal_width, bar_label=file_list[y_file_number])
+        elif type(Xdata[0])==float or type(Xdata[0])==int and type(Ydata[0])==str:
+            print('Y Datas must be int or float')
+        elif type(Xdata[0])==str and type(Ydata[0])==str:
+            print('Two Datas are str data')
+            return 'c', 'c', 'c', 'q'
+        else:
+            print('error')
+            return 'c', 'c', 'c', 'q'
+        file_numbers=[x_file_number, y_file_number]
+        relation=' vs '.join([file_list[i] for i in file_numbers])
+        if len(total_graph)!=0:
+            total_graph[0]=total_graph[0]+'('+relation+')'
+            return total_graph, file_numbers, 'c', 'c'
+
+    elif user1_input==3:
+        [Xdata,xindex,x_file_number]=outputfile_input(pwd,file_list,'X-Axis data of Bar_Horizontal Graph')
+        if x_file_number=='q':
+            return 'c', 'c', 'c', 'q'
+        [Ydata,yindex,y_file_number]=outputfile_input(pwd,file_list,'Y-Axis data of Bar_Horizontal Graph')
+        if y_file_number=='q':
+            return 'c', 'c', 'c', 'q'
+        if type(Xdata[0])==float or type(Xdata[0])==int and type(Ydata[0])==float or type(Ydata[1])==int:
+            cal_height=(max(Ydata)-min(Ydata))/len(Ydata)*0.5
+            total_graph = userbarh_style(Xdata, Ydata, barh_height=cal_height, barh_label=file_list[x_file_number])
+        elif type(Xdata[0])==str and type(Ydata[0])==float or type(Ydata[1])==int:
+            print('X Datas must be int or float')
+        elif type(Xdata[0])==float or type(Xdata[0])==int and type(Ydata[0])==str:
+            cal_height=(max(yindex)-min(yindex))/len(yindex)*0.5
+            total_graph = userbarh_style(Xdata, yindex, barh_height=cal_height, barh_label=file_list[x_file_number])
+        elif type(Xdata[0])==str and type(Ydata[0])==str:
+            print('Two Datas are str data')
+            return 'c', 'c', 'c', 'q'
+        else:
+            print('error')
+            return 'c', 'c', 'c', 'q'
+        file_numbers=[x_file_number, y_file_number]
+        relation=' vs '.join([file_list[i] for i in file_numbers])
+        if len(total_graph)!=0:
+            total_graph[0]=total_graph[0]+'('+relation+')'
+            return total_graph, file_numbers, 'c', 'c'
+    
+    elif user1_input==4:
+        [Xdata,xindex,x_file_number]=outputfile_input(pwd,file_list,'X-Axis data of Scatter Graph')
+        if x_file_number=='q':
+            return 'c', 'c', 'c', 'q'
+        [Ydata,yindex,y_file_number]=outputfile_input(pwd,file_list,'Y-Axis data of Scatter Graph')
+        if y_file_number=='q':
+            return 'c', 'c', 'c', 'q'
+        if type(Xdata[0])==float or type(Xdata[0])==int and type(Ydata[0])==float or type(Ydata[1])==int:
+            total_graph = userscatter_style(Xdata, Ydata)
+        elif type(Xdata[0])==str and type(Ydata[0])==float or type(Ydata[1])==int:
+            total_graph = userscatter_style(xindex, Ydata)
+        elif type(Xdata[0])==float or type(Xdata[0])==int and type(Ydata[0])==str:
+            total_graph = userscatter_style(Xdata, yindex)
+        elif type(Xdata[0])==str and type(Ydata[0])==str:
+            print('Two Datas are str data')
+            return 'c', 'c', 'c', 'q'
+        else:
+            print('error')
+            return 'c', 'c', 'c', 'q'
+        file_numbers=[x_file_number, y_file_number]
+        relation=' vs '.join([file_list[i] for i in file_numbers])
+        if len(total_graph)!=0:
+            total_graph[0]=total_graph[0]+'('+relation+')'
+            return total_graph, file_numbers, 'c', 'c'
+
+    elif user1_input==6:
+        [Xdata,xindex,x_file_number]=outputfile_input(pwd,file_list,'X-Axis Data of Errorbar Graph')
+        if x_file_number=='q':
+            return 'c', 'c', 'c', 'q'
+        [Ydata,yindex,y_file_number]=outputfile_input(pwd,file_list,'Y-Axis Data of Errorbar Graph')
+        if y_file_number=='q':
+            return 'c', 'c', 'c', 'q'
+        if type(Xdata[0])==float or type(Xdata[0])==int and type(Ydata[0])==float or type(Ydata[1])==int:
+            total_graph = usererrorbar_style(Xdata, Ydata, errorbar_xerr=None, errorbar_yerr=None, errorbar_label=file_list[y_file_number])
+        elif type(Xdata[0])==str and type(Ydata[0])==float or type(Ydata[1])==int:
+            total_graph = usererrorbar_style(xindex, Ydata, errorbar_xerr=None, errorbar_yerr=None, errorbar_label=file_list[y_file_number])
+        elif type(Xdata[0])==float or type(Xdata[0])==int and type(Ydata[0])==str:
+            total_graph = usererrorbar_style(Xdata, yindex, errorbar_xerr=None, errorbar_yerr=None, errorbar_label=file_list[y_file_number])
+        elif type(Xdata[0])==str and type(Ydata[0])==str:
+            print('Two Datas are str data')
+            return 'c', 'c', 'c', 'q'
+        else:
+            print('error')
+            return 'c', 'c', 'c', 'q'
+        file_numbers=[x_file_number, y_file_number]
+        relation=' vs '.join([file_list[i] for i in file_numbers])
+        if len(total_graph)!=0:
+            total_graph[0]=total_graph[0]+'('+relation+')'
+            return total_graph, file_numbers, 'c', 'c'
+
+    elif user1_input==7:
+        [data,index,v_file_number]=outputfile_input(pwd,file_list,'Data of Histogram Graph')
+        if v_file_number=='q':
+            return 'c', 'c', 'c', 'q'
+        if type(data[0])==float or type(data[0])==int:
+            total_graph = userhist_style(data, hist_label=file_list[v_file_number])
+        elif type(data[0])==str:
+            total_graph = userhist_style(index, hist_label=file_list[v_file_number])
+        else:
+            print('error')
+            return 'c', 'c', 'c', 'q'
+        if len(total_graph)!=0:
+            total_graph[0]=total_graph[0]+'('+str(v_file_number)+')'
+            return total_graph, v_file_number, 'c', 'c'
+    
+    elif user1_input==8:
+        [data,index,v_file_number]=outputfile_input(pwd,file_list,'Data of Pie Chart Graph')
+        if v_file_number=='q':
+            return 'c', 'c', 'c', 'q'
+        if type(data[0])==float or type(data[0])==int:
+            total_graph = userpie_style(data)
+        elif type(data[0])==str:
+            total_graph = userpie_style(index)
+        else:
+            print('error')
+            return 'c', 'c', 'c', 'q'
+        if len(total_graph)!=0:
+            total_graph[0]=total_graph[0]+'('+str(v_file_number)+')'
+            return total_graph, v_file_number, 'c', 'c'
+
+
+    elif user1_input==9:
+        [data,index,v_file_number]=outputfile_input(pwd,file_list,'Data of Heatmap Graph(2D array)')
+        if v_file_number=='q':
+            return 'c', 'c', 'c', 'q'
+        if type(data[0][0])==float or type(data[0])==int:
+            total_graph = usermatshow_style(data)
+        else:
+            print('error')
+            return 'c', 'c', 'c', 'q'
+        if len(total_graph)!=0:
+            total_graph[0]=total_graph[0]+'('+str(v_file_number)+')'
+            return total_graph, v_file_number, 'c', 'c'
+        
+    elif user1_input==10:
+        while True:
+            data=input('Input Height of axhline(Horizontal) : ')
+            if data=='q':
+                return 'c', 'c', 'c', 'q'
+            try:
+                data=float(data)
+                break
+            except:
+                print('Input must be float.')
+        total_graph=useraxhline(data, axhline_xmin=0, axhline_xmax=1, axhline_color='black', axhline_label='Horizontal Line')
+        print(total_graph)
+        return total_graph, 'hlines', 'c', 'c'
+                 
+    elif user1_input==11:
+        while True:
+            data=input('Input Width of axvline(Vertical) : ')
+            if data=='q':
+                return 'c', 'c', 'c', 'q'
+            try:
+                data=float(data)
+                break
+            except:
+                print('Input must be float.')
+        total_graph=useraxvline(data, axvline_ymin=0, axvline_ymax=1, axhline_color='black', axhline_label='Vertical Line')
+        return total_graph, 'vlines', 'c', 'c'
+
+    else:
+        return 'c', 'c', 'c', 'q'
+                         
+        
+def user2(total_graphlist):
+    user2_input1='start'
+    while user2_input1!='q':
+        graphs={int(i)+1 : j[0] for i,j in enumerate(total_graphlist)}
+        print(graphs)
+        user2_input1=input('Select Your Graph : ')
+        
+        if user2_input1=='q':
+            break
+        
+        try:
+            user2_input1=int(user2_input1)-1
+        except:
+            print('Input must be int')
+            user2(total_graphlist)
+        
+        selected_graph=total_graphlist[user2_input1]
+        name=total_graphlist[user2_input1][0].split('(')[0]
+        print(name)
+        if name=='Line':
+            user2_input2='start'
+            while user2_input2!='q':
+                while True:
+                    #while user2_input2!=0:
+                    #Original Data
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    line_x=total_graphlist[user2_input1][1]
+                    line_y=total_graphlist[user2_input1][2]
+                    line_linestyle=total_graphlist[user2_input1][3]
+                    line_solid_capstyle=total_graphlist[user2_input1][4]
+                    line_dash_capstyle=total_graphlist[user2_input1][5]
+                    line_linewidth=total_graphlist[user2_input1][6]
+                    line_marker=total_graphlist[user2_input1][7]
+                    line_markersize=total_graphlist[user2_input1][8]
+                    line_color=total_graphlist[user2_input1][9]
+                    line_label=total_graphlist[user2_input1][10]
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    print('1. linestyle, 2.solid_capstyle, 3.dash_capstyle, 4.linewidth, 5.marker, 6.markersize, 7.color, 8.label(legend)')
+                    option_list=[line_linestyle, line_solid_capstyle, line_solid_capstyle, line_linewidth, line_marker, line_markersize, line_color, line_label]
+                    option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                    print('Current Parameters : ',option_dict)
+
+                    user2_input2=input('Input Your Work (back:q) : ')
+                    if user2_input2 == 'q':
+                        break
+                    try:
+                        user2_input2=int(user2_input2)
+                    except:
+                        print('Input must be int.')
+                    if user2_input2 == 1:
+                        line_linestyle=printlinestyle()
+                    elif user2_input2 == 2:
+                        line_solid_capstyle=printsolid_capstyle()
+                    elif user2_input2 == 3:
+                        line_solid_capstyle=printdash_capstyle()
+                    elif user2_input2 == 4:
+                        line_linewidth=printwidth()
+                    elif user2_input2 == 5:
+                        line_marker = printmarker()
+                    elif user2_input2 == 6:
+                        line_markersize=printmarkersize()
+                    elif user2_input2 == 7:
+                        line_color = printcolor()
+                    elif user2_input2 == 8:
+                        line_label = printlabel()
+
+                    end_optionlist=[line_linestyle, line_solid_capstyle, line_solid_capstyle, line_linewidth, line_marker, line_markersize, line_color, line_label]
+                    if end_optionlist.count('q')>0:
+                        break
+
+                    selected_graph=[name, line_x, line_y, line_linestyle, line_solid_capstyle, line_solid_capstyle, line_linewidth, line_marker, line_markersize, line_color, line_label]
+                    total_graphlist[user2_input1] = selected_graph
+
+        elif name=='Bar':
+            user2_input2='start'
+            while user2_input2!='q':
+                while True:
+                    #Original Data
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    xvalue=total_graphlist[user2_input1][1]
+                    yvalue=total_graphlist[user2_input1][2]
+                    bar_color=total_graphlist[user2_input1][3]
+                    bar_width=total_graphlist[user2_input1][4]
+                    bar_align=total_graphlist[user2_input1][5]
+                    bar_edgecolor=total_graphlist[user2_input1][6]
+                    bar_linewidth=total_graphlist[user2_input1][7]
+                    bar_tick_label=total_graphlist[user2_input1][8]
+                    bar_label=total_graphlist[user2_input1][9]
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    print('1. color, 2.width, 3.align, 4.edgecolor, 5.linewidth, 6.tick_label, 7.label')
+
+                    option_list=[bar_color, bar_width, bar_align, bar_edgecolor, bar_linewidth,  bar_tick_label, bar_label]
+                    option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                    print('Current Parameters : ',option_dict)
+
+                    user2_input2=input('Input Your Work (back:q) : ')
+                    if user2_input2 == 'q':
+                        break
+                    try:
+                        user2_input2=int(user2_input2)
+                    except:
+                        print('Input must be int.')
+                    if user2_input2 == 1:
+                        bar_color = printcolor()
+                    elif user2_input2 == 2:
+                        bar_width = printwidth()
+                    elif user2_input2 == 3:
+                        bar_align = printalign()
+                    elif user2_input2 == 4:
+                        bar_edgecolor = printcolor()
+                    elif user2_input2 == 5:
+                        bar_linewidth = printwidth()
+                    elif user2_input2 == 6:
+                        print(xvalue)
+                        bar_tick_label = printlabels(xvalue)
+                    elif user2_input2 == 7:
+                        bar_label = printlabel()
+
+                    end_optionlist=[bar_color, bar_width, bar_align, bar_edgecolor, bar_linewidth, bar_tick_label, bar_label]
+                    if end_optionlist.count('q')>0:
+                        break
+
+                    selected_graph=[name, xvalue, yvalue, bar_color, bar_width, bar_align, bar_edgecolor, bar_linewidth,  bar_tick_label, bar_label]
+                    total_graphlist[user2_input1] = selected_graph
+
+        elif name=='Barh':
+            user2_input2='start'
+            while user2_input2!='q':
+                while True:
+                    #Original Data
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    xvalue=total_graphlist[user2_input1][1]
+                    yvalue=total_graphlist[user2_input1][2]
+                    barh_color=total_graphlist[user2_input1][3]
+                    barh_height=total_graphlist[user2_input1][4]
+                    barh_align=total_graphlist[user2_input1][5]
+                    barh_edgecolor=total_graphlist[user2_input1][6]
+                    barh_linewidth=total_graphlist[user2_input1][7]
+                    barh_tick_label=total_graphlist[user2_input1][8]
+                    barh_label=total_graphlist[user2_input1][9]
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    print('1. color, 2.height, 3.align, 4.edgecolor, 5.linewidth, 6.tick_label, 7.label')
+
+                    option_list=[barh_color, barh_width, barh_align, barh_edgecolor, barh_linewidth,  barh_tick_label, barh_label]
+                    option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                    print('Current Parameters : ',option_dict)
+
+                    user2_input2=input('Input Your Work (back:q) : ')
+                    if user2_input2 == 'q':
+                        break
+                    try:
+                        user2_input2=int(user2_input2)
+                    except:
+                        print('Input must be int.')
+                    if user2_input2 == 1:
+                        barh_color = printcolor()
+                    elif user2_input2 == 2:
+                        barh_height = printwidth()
+                    elif user2_input2 == 3:
+                        barh_align = printalign()
+                    elif user2_input2 == 4:
+                        barh_edgecolor = printcolor()
+                    elif user2_input2 == 5:
+                        barh_linewidth = printwidth()
+                    elif user2_input2 == 6:
+                        barh_tick_label = printlabels(yvalue)
+                    elif user2_input2 == 7:
+                        barh_label = printlabel()
+                    
+                    end_optionlist=[barh_color, barh_width, barh_align, barh_edgecolor, barh_linewidth, barh_tick_label, barh_label]
+                    if end_optionlist.count('q')>0:
+                        break
+
+                    selected_graph=[name, xvalue, yvalue, barh_color, barh_width, barh_align, barh_edgecolor, barh_linewidth,  barh_tick_label, barh_label]
+                    total_graphlist[user2_input1] = selected_graph
+
+        elif name=='Scatter':
+            user2_input2='start'
+            while user2_input2!='q':
+                while True:
+                    #Original Data
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    xvalue=total_graphlist[user2_input1][1]
+                    yvalue=total_graphlist[user2_input1][2]
+                    scatter_s=total_graphlist[user2_input1][3]
+                    scatter_c=total_graphlist[user2_input1][4]
+                    scatter_alpha=total_graphlist[user2_input1][5]
+                    scatter_cmap=total_graphlist[user2_input1][6]
+                    scatter_label=total_graphlist[user2_input1][9]
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    print('1.size(s), 2.color(c), 3.alpha, 4.cmap, 5.label')
+
+                    option_list=[scatter_s, scatter_c, scatter_alpha, scatter_cmap, scatter_label]
+                    option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                    print('Current Parameters : ',option_dict)
+
+                    user2_input2=input('Input Your Work (back:q) : ')
+                    if user2_input2 == 'q':
+                        break
+                    try:
+                        user2_input2=int(user2_input2)
+                    except:
+                        print('Input must be int.')
+                    if user2_input2 == 1:
+                        scatter_s = printsize()
+                    elif user2_input2 == 2:
+                        scatter_c = printcolor()
+                    elif user2_input2 == 3:
+                        scatter_alpha = printalpha('Alpha(Transparency)')
+                    elif user2_input2 == 4:
+                        scatter_cmap = printcmap()
+                    elif user2_input2 == 5:
+                        scatter_label = printlabel()
+                    
+                    end_optionlist=[scatter_s, scatter_c, scatter_alpha, scatter_cmap, scatter_label]
+                    if end_optionlist.count('q')>0:
+                        break
+
+                    selected_graph=[name, xvalue, yvalue, scatter_s, scatter_c, scatter_alpha, scatter_cmap, scatter_label]
+                    total_graphlist[user2_input1] = selected_graph
+
+        elif name=='Errorbar':
+            user2_input2='start'
+            while user2_input2!='q':
+                while True:
+                    #Original Data
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    xvalue=total_graphlist[user2_input1][1]
+                    yvalue=total_graphlist[user2_input1][2]
+                    errorbar_xerr=total_graphlist[user2_input1][3]
+                    errorbar_yerr=total_graphlist[user2_input1][4]
+                    errorbar_uplims=total_graphlist[user2_input1][5]
+                    errorbar_lolims=total_graphlist[user2_input1][6]
+                    errorbar_xlolims=total_graphlist[user2_input1][7]
+                    errorbar_xuplims=total_graphlist[user2_input1][8]
+                    errorbar_label=total_graphlist[user2_input1][9]
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    print('1.xerr, 2.yerr, 3.uplims, 4.lolims, 5.xlolims, 6.xuplims, 7.label')
+
+                    option_list=[errorbar_xerr, errorbar_yerr, errorbar_uplims, errorbar_lolims, errorbar_xlolims, errorbar_xlolims, errorbar_label]
+                    option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                    print('Current Parameters : ',option_dict)
+
+                    user2_input2=input('Input Your Work (back:q) : ')
+                    if user2_input2 == 'q':
+                        break
+                    try:
+                        user2_input2=int(user2_input2)
+                    except:
+                        print('Input must be int.')
+                    if user2_input2 == 1:
+                        errorbar_xerr = printerr(xvalue)
+                    elif user2_input2 == 2:
+                        errorbar_yerr = printerr(xvalue)
+                    elif user2_input2 == 3:
+                        errorbar_uplims = printuplims()
+                    elif user2_input2 == 4:
+                        errorbar_lolims = printlolims()
+                    elif user2_input2 == 5:
+                        errorbar_xlolims = printxlolims()
+                    elif user2_input2 == 6:
+                        errorbar_xuplims = printxuplims()
+                    elif user2_input2 == 7:
+                        errorbar_label = printlabel()
+                    
+                    end_optionlist=[errorbar_xerr, errorbar_yerr, errorbar_uplims, errorbar_lolims, errorbar_xlolims, errorbar_xuplims, errorbar_label]
+                    if end_optionlist.count('q')>0:
+                        break
+
+                    selected_graph=[name, xvalue, yvalue, errorbar_xerr, errorbar_yerr, errorbar_uplims, errorbar_lolims, errorbar_xlolims, errorbar_xlolims, errorbar_label]
+                    total_graphlist[user2_input1] = selected_graph
+
+
+        elif name=='Histogram':
+            user2_input2='start'
+            while user2_input2!='q':
+                while True:
+                    #Original Data
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    hist_value=total_graphlist[user2_input1][1]
+                    hist_bins=total_graphlist[user2_input1][2]
+                    hist_cumulative=total_graphlist[user2_input1][3]
+                    hist_histtype=total_graphlist[user2_input1][4]
+                    hist_density=total_graphlist[user2_input1][5]
+                    hist_alpha=total_graphlist[user2_input1][6]
+                    hist_label=total_graphlist[user2_input1][7]
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    print('1.bins, 2.cumulative, 3.histtype, 4.density, 5.alpha, 6.label')
+
+                    option_list=[hist_bins, hist_cumulative, hist_histtype, hist_density, hist_alpha, hist_label]
+                    option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                    print('Current Parameters : ',option_dict)
+
+                    user2_input2=input('Input Your Work (back:q) : ')
+                    if user2_input2 == 'q':
+                        break
+                    try:
+                        user2_input2=int(user2_input2)
+                    except:
+                        print('Input must be int.')
+                    if user2_input2 == 1:
+                        hist_bins = printbins()
+                    elif user2_input2 == 2:
+                        hist_cumulative = printcumulative()
+                    elif user2_input2 == 3:
+                        hist_histtype = printhisttype()
+                    elif user2_input2 == 4:
+                        hist_density = printdensity()
+                    elif user2_input2 == 5:
+                        hist_alpha = printalpha('Alpha(Transparency)')
+                    elif user2_input2 == 6:
+                        hist_label = printlabel()
+                    
+                    end_optionlist=[hist_bins, hist_cumulative, hist_histtype, hist_density, hist_alpha, hist_label]
+                    if end_optionlist.count('q')>0:
+                        break
+
+                    selected_graph=[name, hist_value, hist_bins, hist_cumulative, hist_histtype, hist_density, hist_alpha, hist_label]
+                    total_graphlist[user2_input1] = selected_graph
+
+        elif name=='Pie Chart':
+            user2_input2='start'
+            while user2_input2!='q':
+                while True:
+                    #Original Data
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    pie_value=total_graphlist[user2_input1][1]
+                    pie_labels=total_graphlist[user2_input1][2]
+                    pie_autopact=total_graphlist[user2_input1][3]
+                    pie_startangle=total_graphlist[user2_input1][4]
+                    pie_counterclock=total_graphlist[user2_input1][5]
+                    pie_explode=total_graphlist[user2_input1][6]
+                    pie_shadow=total_graphlist[user2_input1][7]
+                    pie_colors=total_graphlist[user2_input1][8]
+                    pie_wedgeprops=total_graphlist[user2_input1][9]
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    print('1.labels, 2.autopact, 3.startangle, 4.counterclock, 5.explode, 6.shadow, 7.colors, 8.wedgeprps')
+
+                    option_list=[pie_labels, pie_autopact, pie_startangle, pie_counterclock, pie_explode, pie_shadow, pie_colors, pie_wedgeprops]
+                    option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                    print('Current Parameters : ',option_dict)
+
+                    user2_input2=input('Input Your Work (back:q) : ')
+                    if user2_input2 == 'q':
+                        break
+                    try:
+                        user2_input2=int(user2_input2)
+                    except:
+                        print('Input must be int.')
+                    if user2_input2 == 1:
+                        pie_labels = printlabels(pie_value)
+                    elif user2_input2 == 2:
+                        pie_autopact = printautopact()
+                    elif user2_input2 == 3:
+                        pie_startangle = printstartangle()
+                    elif user2_input2 == 4:
+                        pie_counterclock = printcounterclock()
+                    elif user2_input2 == 5:
+                        pie_explode = printexplode(datalist)
+                    elif user2_input2 == 6:
+                        pie_shadow = printshadow()
+                    elif user2_input2 == 7:
+                        pie_colors = printcolor()
+                    elif user2_input2 == 8:
+                        pie_wedgeprops = printwedgeprops(styleoutput={'width':None, 'edgecolor':None, 'linewidth':None})
+                    
+                    end_optionlist=[pie_labels, pie_autopact, pie_startangle, pie_counterclock, pie_explode, pie_shadow, pie_colors, pie_wedgeprops]
+                    if end_optionlist.count('q')>0:
+                        break
+
+                    selected_graph=[name, pie_value, pie_labels, pie_autopact, pie_startangle, pie_counterclock, pie_explode, pie_shadow, pie_colors, pie_wedgeprops]
+                    total_graphlist[user2_input1] = selected_graph
+
+        elif name=='Heatmap':
+            user2_input2='start'
+            while user2_input2!='q':
+                while True:
+                    #Original Data
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    matshow_2dlist=total_graphlist[user2_input1][1]
+                    matshow_cmap=total_graphlist[user2_input1][2]
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    print('1.cmap')
+
+                    option_list=[matshow_cmap]
+                    option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                    print('Current Parameters : ',option_dict)
+
+                    user2_input2=input('Input Your Work (back:q) : ')
+                    if user2_input2 == 'q':
+                        break
+                    try:
+                        user2_input2=int(user2_input2)
+                    except:
+                        print('Input must be int.')
+                    if user2_input2 == 1:
+                        matshow_cmap = printcmap()
+                        
+                    end_optionlist=[matshow_cmap]
+                    if end_optionlist.count('q')>0:
+                        break
+                        
+                        
+                    selected_graph=[name, matshow_2dlist, matshow_cmap]
+                    total_graphlist[user2_input1] = selected_graph
+                
+        elif name=='Horizontal':
+            user2_input2='start'
+            while user2_input2!='q':
+                while True:
+                    #Original Data
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    axhline_y=total_graphlist[user2_input1][1]
+                    axhline_xmin=total_graphlist[user2_input1][2]
+                    axhline_xmax=total_graphlist[user2_input1][3]
+                    axhline_color=total_graphlist[user2_input1][4]
+                    axhline_linestyle=total_graphlist[user2_input1][5]
+                    axhline_linewidth=total_graphlist[user2_input1][6]
+                    axhline_label=total_graphlist[user2_input1][7]
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    print('1.y_height, 2. xmin, 3.xmax, 4.color, 5.linestyle, 6.linewidth, 7.label')
+                    option_list=[axhline_y, axhline_xmin, axhline_xmax, axhline_color, axhline_linestyle, axhline_linewidth, axhline_label]
+                    option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                    print('Current Parameters : ',option_dict)
+                    
+                    user2_input2=input('Input Your Work (back:q) : ')
+                    if user2_input2 == 'q':
+                        break
+                    try:
+                        user2_input2=int(user2_input2)
+                    except:
+                        print('Input must be int.')
+                    if user2_input2 == 1:
+                        axhline_y = printfloat('Horizontal y value')
+                    elif user2_input2 == 2:
+                        axhline_xmin = printalpha('xmin')
+                    elif user2_input2 == 3:
+                        axhline_xmax = printalpha('xmax')
+                    elif user2_input2 == 4:
+                        axhline_color = printcolor()
+                    elif user2_input2 == 5:
+                        axhline_linestyle = printlinestyle()
+                    elif user2_input2 == 6:
+                        axhline_linewidth = printlinewidth()
+                    elif user2_input2 == 7:
+                        axhline_label = printlabel()
+                    
+                    end_optionlist=[axhline_y, axhline_xmin, axhline_xmax, axhline_color, axhline_linestyle, axhline_linewidth, axhline_label]
+                    if end_optionlist.count('q')>0:
+                        break
+
+                    selected_graph=[name, axhline_y, axhline_xmin, axhline_xmax, axhline_color, axhline_linestyle, axhline_linewidth, axhline_label]
+                    total_graphlist[user2_input1] = selected_graph
+
+
+        elif name=='Vertical':
+            user2_input2='start'
+            while user2_input2!='q':
+                while True:
+                    #Original Data
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    axvline_x=total_graphlist[user2_input1][1]
+                    axvline_ymin=total_graphlist[user2_input1][2]
+                    axvline_ymax=total_graphlist[user2_input1][3]
+                    axvline_color=total_graphlist[user2_input1][4]
+                    axvline_linestyle=total_graphlist[user2_input1][5]
+                    axvline_linewidth=total_graphlist[user2_input1][6]
+                    axvline_label=total_graphlist[user2_input1][7]
+                    #----------------------------------------------------------------------------------------------------------------------------------------------
+                    print('1.y_height, 2. xmin, 3.xmax, 4.color, 5.linestyle, 6.linewidth, 7.label')
+                    option_list=[axvline_x, axvline_ymin, axvline_ymax, axvline_color, axvline_linestyle, axvline_linewidth, axvline_label]
+                    option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                    print('Current Parameters : ',option_dict)
+                    
+                    user2_input2=input('Input Your Work (back:q) : ')
+                    if user2_input2 == 'q':
+                        break
+                    try:
+                        user2_input2=int(user2_input2)
+                    except:
+                        print('Input must be int.')
+                    if user2_input2 == 1:
+                        axvline_x = printfloat('Vertical x value')
+                    elif user2_input2 == 2:
+                        axvline_ymin = printalpha('ymin')
+                    elif user2_input2 == 3:
+                        axvline_ymax = printalpha('ymax')
+                    elif user2_input2 == 4:
+                        axvline_color = printcolor()
+                    elif user2_input2 == 5:
+                        axvline_linestyle = printlinestyle()
+                    elif user2_input2 == 6:
+                        axvline_linewidth = printlinewidth()
+                    elif user2_input2 == 7:
+                        axvline_label = printlabel()
+                    
+                    end_optionlist=[axvline_x, axvline_ymin, axvline_ymax, axvline_color, axvline_linestyle, axvline_linewidth, axvline_label]
+                    if end_optionlist.count('q')>0:
+                        break
+
+                    selected_graph=[name, axvline_x, axvline_ymin, axvline_ymax, axvline_color, axvline_linestyle, axvline_linewidth, axvline_label]
+                    total_graphlist[user2_input1] = selected_graph
+            
+        else:
+            user2(pwd,file_list)
+            
+    if user2_input1=='q':
+        return total_graphlist, 'c'
+
+def user3(total_graphlist, user_xfilelist, user_yfilelist, user_vfilelist, total_xlabellist, total_ylabellist, total_axislist, total_titlelist):
+    user3_input1='start'
+    while user3_input1!='q':
+        graphs={int(i)+1 : j[0] for i,j in enumerate(total_graphlist)}
+        print(graphs)
+        print('Note! : If you delete a data-based plot, (graph title, the axis label, axis range) are initialized!')
+        user3_input1=input('Select Your Graph : ')
+        
+        if user3_input1=='q':
+            break
+        
+        try:
+            user3_input1=int(user3_input1)-1
+        except:
+            print('Input must be int')
+        
+        selected_graph=total_graphlist[user3_input1]
+        name=total_graphlist[user3_input1][0].split('(')[0]
+
+        Graph1=['Line', 'Bar', 'Barh', 'Scatter', 'Scatter(3D)', 'Errorbar']
+        Graph2=['Histogram', 'Pie Chart', 'Heatmap']
+        Graph3=['Horizontal', 'Vertical']
+        
+        onlyname={int(i)+1 : j[0].split('(')[0] for i,j in enumerate(total_graphlist)}
+        onlynamekeys=list(onlyname.keys())
+        onlynamevalues=list(onlyname.values())
+    
+        Graph_list1 = [onlynamekeys[i] for i in range(len(onlynamevalues)) if onlynamevalues[i] in Graph1]
+        Graph_list2 = [onlynamekeys[i] for i in range(len(onlynamevalues)) if onlynamevalues[i] in Graph2]
+        Graph_list3 = [onlynamekeys[i] for i in range(len(onlynamevalues)) if onlynamevalues[i] in Graph3]
+        
+        Graph_list1 = {j : int(i) for i,j in enumerate(Graph_list1)}
+        Graph_list2 = {j : int(i) for i,j in enumerate(Graph_list2)}
+        Graph_list3 = {j : int(i) for i,j in enumerate(Graph_list3)}
+        
+        if name in Graph1:
+            del(total_graphlist[user3_input1])
+            del(user_xfilelist[Graph_list1[user3_input1]])
+            del(user_yfilelist[Graph_list1[user3_input1]])
+            total_titlelist=[]
+            total_xlabellist=[]
+            total_ylabellist=[]
+            total_axislist=[]
+        
+        elif name in Graph2:
+            del(total_graphlist[Graph_list2[user3_input1]])
+            del(user_vfilelist[Graph_list2[user3_input1]])
+            total_titlelist=[]
+            total_xlabellist=[]
+            total_ylabellist=[]
+            total_axislist=[]
+            
+        elif name in Graph3:
+            del(total_graphlist[user3_input1])
+            
+    if user3_input1=='q':
+        return total_graphlist, user_xfilelist, user_yfilelist, user_vfilelist, total_xlabellist, total_ylabellist, total_axislist, total_titlelist
+
+    
+def user4(total_xlabellist, total_ylabellist):
+    user4_input1='start'
+    while user4_input1!='q':
+    #Original Data
+        #----------------------------------------------------------------------------------------------------------------------------------------------
+        xlabel_name=total_xlabellist[0]
+        xlabel_fontdict=total_xlabellist[1]
+        xlabel_labelpad=total_xlabellist[2]
+        xlabel_loc=total_xlabellist[3]
+
+        ylabel_name=total_ylabellist[0]
+        ylabel_fontdict=total_ylabellist[1]
+        ylabel_labelpad=total_ylabellist[2]
+        ylabel_loc=total_ylabellist[3]
+
+        print('1.xlabel, 2.ylabel')
+        user4_input1=input('Input Your Work (back:q) : ')
+        if user4_input1=='q':
+            break
+        try:
+            user4_input1=int(user4_input1)
+        except:
+            print('Input must be int.')
+
+        if user4_input1==1:
+            user4_input2=input('Input Xlabel Name(if not change, just input Enter key) : ')
+            if user4_input2 != '':
+                xlabel_name=user4_input2
+                selected_xlabel=[xlabel_name, xlabel_fontdict, xlabel_labelpad, xlabel_loc]
+                total_xlabellist = selected_xlabel
+
+            user4_input3='start'
+            while user4_input3!='q':
+                
+                xlabel_name=total_xlabellist[0]
+                xlabel_fontdict=total_xlabellist[1]
+                xlabel_labelpad=total_xlabellist[2]
+                xlabel_loc=total_xlabellist[3]
+                
+                print('1.label_name, 2.fontdict, 3.labelpad 4.location')
+                option_list=[xlabel_name, xlabel_fontdict, xlabel_labelpad, xlabel_loc]
+                option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                print('Current Parameters : ',option_dict)
+
+                user4_input3=input('Input Your Work (back:q) : ')
+                if user4_input3=='q':
+                    break
+                try:
+                    user4_input3=int(user4_input3)
+                except:
+                    print('Input must be int.')
+
+                if user4_input3 == 1:
+                    xlabel_name = printname('xlabel')
+                elif user4_input3 == 2:
+                    xlabel_fontdict = printcumulative()
+                elif user4_input3 == 3:
+                    xlabel_labelpad = printpad()
+                elif user4_input3 == 4:
+                    xlabel_loc = printloc('xlabel')
+
+                selected_xlabel=[xlabel_name, xlabel_fontdict, xlabel_labelpad, xlabel_loc]
+                total_xlabellist = selected_xlabel
+
+        elif user4_input1==2:
+            user4_input2=input('Input Ylabel Name(if not change, just input Enter key) : ')
+            if user4_input2 != '':
+                ylabel_name=user4_input2
+                selected_ylabel=[ylabel_name, ylabel_fontdict, ylabel_labelpad, ylabel_loc]
+                total_ylabellist = selected_ylabel
+
+            user4_input3='start'
+            while user4_input3!='q':
+                
+                ylabel_name=total_ylabellist[0]
+                ylabel_fontdict=total_ylabellist[1]
+                ylabel_labelpad=total_ylabellist[2]
+                ylabel_loc=total_ylabellist[3]
+                
+                print('1.label_name, 2.fontdict, 3.labelpad 4.location')
+                option_list=[ylabel_name, ylabel_fontdict, ylabel_labelpad, ylabel_loc]
+                option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                print('Current Parameters : ',option_dict)
+
+                user4_input3=input('Input Your Work (back:q) : ')
+                if user4_input3=='q':
+                    break
+                try:
+                    user4_input3=int(user4_input3)
+                except:
+                    print('Input must be int.')
+
+                if user4_input3 == 1:
+                    ylabel_name = printname('ylabel')
+                elif user4_input3 == 2:
+                    ylabel_fontdict = printcumulative()
+                elif user4_input3 == 3:
+                    ylabel_labelpad = printpad()
+                elif user4_input3 == 4:
+                    ylabel_loc = printloc('ylabel')
+
+                selected_ylabel=[ylabel_name, ylabel_fontdict, ylabel_labelpad, ylabel_loc]
+                total_ylabellist = selected_ylabel
+
+
+        else:
+            print('user4 Error')
+    return total_xlabellist, total_ylabellist  
+    
+def user5(total_legendlist):
+    user5_input1='start'
+    while user5_input1!='q':
+        #Original Data
+        #----------------------------------------------------------------------------------------------------------------------------------------------
+        legend_loc=total_legendlist[0]
+        legend_ncol=total_legendlist[1]
+        legend_fontsize=total_legendlist[2]
+        legend_frameon=total_legendlist[3]
+        legend_shadow=total_legendlist[4]
+        #---------------------------------------------------------------------------------------------------------------------------------------------
+        print('1.location, 2.Number of Column, 3.fontsize, 4.frameon, 5.shadow, 6.facecolor(Not yet), 7.edgecolor(Not yet), 8.borderpad(Not yet), 9.labelspacing(Not yet)')
+        option_list=[legend_loc, legend_ncol, legend_fontsize, legend_frameon, legend_shadow]
+        option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+        print('Note : If you want to selectively delete the legend, Use Graph_Style -> Label : False .')
+        print('Current Parameters : ',option_dict)
+
+        user5_input1=input('Input Your Work (back:q) : ')
+        
+        if user5_input1=='q':
+            break
+        try:
+            user5_input1=int(user5_input)
+        except:
+            print('Input must be int.')
+            
+        if user5_input == 1:
+            legend_loc = printlegendloc()
+        elif user5_input == 2:
+            legend_ncol = printncol()
+        elif user5_input == 3:
+            legend_fontsize = printfloat('legend fontsize')
+        elif user5_input == 4:
+            legend_frameon = printbool('legend frameon')
+        elif user5_input == 5:
+            legend_shadow = printbool('legend shadow')
+        else:
+            print('user5 Error')
+        
+        selected_legend=[legend_loc, legend_ncol, legend_fontsize, legend_frameon, legend_shadow]
+        total_legendlist = selected_legend
+    return total_legendlist
+
+
+def user6(total_axislist):
+    user6_input1='start'
+    while user6_input1!='q':
+        print('1.Direct Input, 2.on, 3.off, 4.equal, 5.scaled, 6.tight, 7.auto, 8.normal, 9.image, 10.square')
+        if len(total_axislist)==4: #범위로 입력한 값이면
+            user_xlimmin=total_axislist[0]
+            user_xlimmax=total_axislist[1]
+            user_xlimmix=total_axislist[2]
+            user_xlimmax=total_axislist[3]
+            option_list=[user_xlimmin, user_xlimmax, user_xlimmix, user_xlimmax]
+            option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+            print('Current Parameters : ',option_dict)
+            output_list=['user_xlimmin', 'user_xlimmax', 'user_xlimmix', 'user_xlimmax']
+            user6_input1=input('Input Your Work (back:q) : ')
+            if user6_input1=='q':
+                break
+            try:
+                user6_input1=int(user6_input1)
+            except:
+                print('Input must be int.')
+
+            if user6_input1==1:
+                for i,j in enumerate(output_list):
+                    user6_input2=float(input(i+' : '))
+                    output_list[i]=user6_input2
+                total_axislist=output_list
+            elif user6_input1>1 and user6_input1<11:
+                total_axislist=user6_input1
+
+        elif len(total_axislist)==1: #string으로 입력한 값이면
+            print('Current Parameters : ',total_axislist[0])
+            output_list=['user_xlimmin', 'user_xlimmax', 'user_xlimmix', 'user_xlimmax']
+            user6_input1=input('Input Your Work (back:q) : ')
+            
+            if user6_input1=='q':
+                break
+            try:
+                user6_input1=int(user6_input1)
+            except:
+                print('Input must be int.')
+                
+            if user6_input1==1:
+                for i,j in enumerate(output_list):
+                    user6_input2=float(input(i+' : '))
+                    output_list[i]=user6_input2
+                total_axislist=output_list
+            elif user6_input1>1 and user6_input1<11:
+                total_axislist=user6_input1
+
+        else:
+            print('user6 error')
+            
+    return total_axislist
+
+
+    
+def user7(total_xscalelist, total_yscalelist):
+    user7_input='start'
+    while user7_input!='q':
+        print('1.xscale, 2.yscale')
+        user7_input=input('Input Your Work (back:q) : ')
+        
+        if user7_input=='q':
+            break
+        try:
+            user7_input=int(user7_input)
+        except:
+            print('Input must be int.')
+            
+        if user7_input==1:
+            output=printscalefunction('xscale')
+            if output=='q':
+                continue
+            else:
+                total_xscalelist=output
+                
+        elif user7_input==2:
+            output=[printscalefunction('yscale')]
+            if output=='q':
+                continue
+            else:
+                total_yscalelist=output
+    return total_xscalelist, total_yscalelist
+
+def user8(total_gridlist):
+    user8_input='start'
+    while user8_input!='q':
+        #Original Data
+        #----------------------------------------------------------------------------------------------------------------------------------------------
+        grid_bool=total_gridlist[0]
+        grid_axis=total_gridlist[1]
+        grid_color=total_gridlist[2]
+        grid_linestyle=total_gridlist[3]
+        grid_linewidth=total_gridlist[4]
+        #---------------------------------------------------------------------------------------------------------------------------------------------
+        print('1.grid on/off, 2.grid axis, 3.grid color, 4.grid linestyle, 5.grid linewidth')
+        option_list=[grid_bool, grid_axis, grid_color, grid_linestyle, grid_linewidth]
+        option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+        print('Current Parameters : ',option_dict)
+
+        user8_input=input('Input Your Work (back:q) : ')
+        
+        if user8_input=='q':
+            break
+        try:
+            user8_input=int(user8_input)
+        except:
+            print('Input must be int.')
+            
+        if user8_input == 1:
+            grid_bool = printbool('grid')
+        elif user8_input == 2:
+            grid_axis = printaxis('grid')
+        elif user8_input == 3:
+            grid_color = printcolor()
+        elif user8_input == 4:
+            grid_linestyle = printlinestyle()
+        elif user8_input == 5:
+            grid_linewidth = printwidth()
+        else:
+            print('user8 Error')
+
+        selected_grid=[grid_bool, grid_axis, grid_color, grid_linestyle, grid_linewidth]
+        total_gridlist = selected_grid
+    
+    return total_gridlist
+        
+
+def user9(total_xticklist, total_yticklist, total_graphlist):
+    user9_input1='start'
+    while user9_input1!='q':
+        #Original Data
+        #----------------------------------------------------------------------------------------------------------------------------------------------
+        xticks_range=total_xticklist[0]
+        xticks_labels=total_xticklist[1]
+        xticks_rotation=total_xticklist[2]
+
+        yticks_range=total_yticklist[0]
+        yticks_labels=total_yticklist[1]
+        yticks_rotation=total_yticklist[2]
+        
+#        print('1.x, 2.y')
+#        user9_xy=int(input('어느 축에 대해 설정할래요 : '))
+#        print('1.ticks, 2.labels, 3.direction, 4.length, 5.pad, 6.labelsize, 7.location, 8.width, 9.color, 10.rotation')
+#        user9_style=int(input('Input Your Work (back:q) : '))
+
+        print('1.xticks, 2.yticks')
+        user9_input1=input('Input Your Work (back:q) : ')
+        
+        if user9_input1=='q':
+            break
+        try:
+            user9_input1=int(user9_input1)
+        except:
+            print('Input must be int.')
+            
+        if user9_input1==1:
+            user9_input2='start'
+            while user9_input2!='q':
+                xticks_range=total_xticklist[0]
+                xticks_labels=total_xticklist[1]
+                xticks_rotation=total_xticklist[2]
+                print('1.xticks_range, 2.labels, 3.rotation')
+                option_list=[xticks_range, xticks_labels, xticks_rotation]
+                option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                print('Current Parameters : ',option_dict)
+
+                user9_input2=input('Input Your Work (back:q) : ')
+                if user9_input2=='q':
+                    break
+                try:
+                    user9_input2=int(user9_input2)
+                except:
+                    print('Input must be int.')
+
+                if user9_input2 == 1:
+                    xticks_range = printtickrange('xticks')
+                elif user9_input2 == 2:
+                    xticks_labels = printlabels(total_graphlist[0][1])
+                elif user9_input2 == 3:
+                    xticks_rotation = printfloat('xticks rotation')
+
+                selected_xticks=[xticks_range, xticks_labels, xticks_rotation]
+                total_xticklist = selected_xticks
+
+        elif user9_input1==2:
+            user9_input2='start'
+            while user9_input2!='q':
+                yticks_range=total_yticklist[0]
+                yticks_labels=total_yticklist[1]
+                yticks_rotation=total_yticklist[2]
+                print('1.yticks_range, 2.labels, 3.rotation')
+                option_list=[yticks_range, yticks_labels, yticks_rotation]
+                option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+                print('Current Parameters : ',option_dict)
+
+                user9_input2=input('Input Your Work (back:q) : ')
+                if user9_input2=='q':
+                    break
+                try:
+                    user9_input2=int(user9_input2)
+                except:
+                    print('Input must be int.')
+
+                if user9_input2 == 1:
+                    yticks_range = printtickrange('yticks')
+                elif user9_input2 == 2:
+                    yticks_labels = printlabels(total_graphlist[0][2])
+                elif user9_input2 == 3:
+                    yticks_rotation = printfloat('yticks rotation')
+
+                selected_yticks=[yticks_range, yticks_labels, yticks_rotation]
+                total_yticklist = selected_yticks
+        else:
+            print('user9 Error')
+
+    return total_xticklist, total_yticklist, total_graphlist
+        
+def user9_2():
+    user9_2_input1='start'
+    while user9_2_input1!='q':
+        print('1.direction, 2.length, 3.pad, 4.labelsize, 5.location, 6.width, 7.color')
+        #Original Data
+        #----------------------------------------------------------------------------------------------------------------------------------------------
+        tick_params_axis=total_tick_paramslist[0]
+        tick_params_direction=total_tick_paramslist[1]
+        tick_params_length=total_tick_paramslist[2]
+        tick_params_pad=total_tick_paramslist[3]
+        tick_params_labelsize=total_tick_paramslist[4]
+        tick_params_width=total_tick_paramslist[5]
+        tick_params_color=total_tick_paramslist[6]
+        tick_params_labelcolor=total_tick_paramslist[7]
+        #---------------------------------------------------------------------------------------------------------------------------------------------
+        print('1.location, 2.Number of Column, 3.fontsize, 4.frameon, 5.shadow, 6.facecolor(Not yet), 7.edgecolor(Not yet), 8.borderpad(Not yet), 9.labelspacing(Not yet)')
+        option_list=[ick_params, axis, legend_fontsize, legend_frameon, legend_shadow]
+        option_dict={int(i)+1 : j for i,j in enumerate(option_list)}
+        print('Current Parameters : ',option_dict)
+
+        user9_2_input1=input('Input Your Work (back:q) : ')
+        if user9_2_input1=='q':
+            break
+        try:
+            user9_2_input1=int(user9_2_input1)
+        except:
+            print('Input must be int.')
+        if user9_2_input1 == 1:
+            tick_params_axis = printaxis('Ticks')
+        elif user9_2_input1 == 2:
+            tick_params_direction = printdirection('Ticks')
+        elif user9_2_input1 == 3:
+            tick_params_length = printfloat('Ticks Length')
+        elif user9_2_input1 == 4:
+            tick_params_pad = printpad()
+        elif user9_2_input1 == 5:
+            tick_params_labelsize = printfloat('Ticks Labelsize')
+        elif user9_2_input1 == 6:
+            tick_params_width = printwidth()
+        elif user9_2_input1 == 7:
+            tick_params_color = printcolor()
+        elif user9_2_input1 == 7:
+            tick_params_labelcolor = printcolor()
+        else:
+            print('user9_2 Error')
+
+        selected_legend=[tick_params_axis, tick_params_direction, tick_params_length, tick_params_pad, tick_params_labelsize, tick_params_width, tick_params_color, tick_params_labelcolor]
+        total_legendlist = selected_legend
+    return total_legendlist
+        
+
+def user10():
+    print('1.title name, 2.location 3.pad, 4.fontdict, 5.get_position')
+    user10_input=int(input('Input Your Work (back:q) : '))
+
+def user11():
+    print('1.text input(이건 10 고르자마자 바로 입력받는걸로 바꾸기), 2.fontdict, 3.rotation, 4.bbox')
+    user11_input=int(input('Input Your Work (back:q) : '))
+
+def user12():
+    print('1.twinx, 2.twiny')
+    user12_input=int(input('Input Your Work (back:q) : '))
+
+def user13():
+    print('1.Horizontal Line, 2.Vertical Line')
+    user13_input=int(input('Input Your Work (back:q) : '))
+    
+#Graph General Plot
+#--------------------------------------------------------------------------------------------------------------------------------------------
+def userline(line_x, line_y, line_linestyle='solid'): #3
+    usergraph_for_identity='Line'
+    usergraph_for_list=[line_x, line_y, line_line_style]
+    usergraph_for_dict=userline_dict(line_x, line_y, line_linestyle)
+    return usergraph_for_identity, usergraph_for_list, usergraph_for_dict
+
+def userbar(bar_x, bar_y): #2
+    return bar_x, bar_y
+
+def userbarh(barh_x, barh_y): #
+    return barh_x, barh_y
+    
+def userscatter(scatter_x, scatter_y):
+    return scatter_x, scatter_y
+    
+def usererrorbar(errorbar_x, errorbar_y, errorbar_xerr=None, errorbar_yerr=None):
+    return errorbar_x, errorbar_y, errorbar_xerr, errorbar_yerr
+    
+def userhist(hist_value):
+    return hist_value
+    
+def userpie(pie_value):
+    return pie_value
+    
+def usermatshow(matshow_2dlist):
+    return matshow_2dlist
+#--------------------------------------------------------------------------------------------------------------------------------------------
+
+#Graph Style
+#--------------------------------------------------------------------------------------------------------------------------------------------
+#1.Line Plot
+def userline_style(line_x, line_y, line_linestyle='solid', line_solid_capstyle=None, line_dash_capstyle=None, line_linewidth=None, line_marker='.', line_markersize=None, line_color=None, line_label=None):
+    outputlist=['Line', line_x, line_y, line_linestyle, line_solid_capstyle, line_dash_capstyle, line_linewidth, line_marker, line_markersize, line_color, line_label]
+    return outputlist
+        
+#2.bar plot
+def userbar_style(bar_x, bar_y, bar_color=None, bar_width=None, bar_align='center', bar_edgecolor=None, bar_linewidth=None, bar_tick_label=None, bar_label=None):
+    outputlist=['Bar', bar_x, bar_y, bar_color, bar_width, bar_align, bar_edgecolor, bar_linewidth, bar_tick_label, bar_label]
+    return outputlist
+    
+#3.barh plot
+def userbarh_style(barh_x, barh_y, barh_color=None, barh_height=None, barh_align='center', barh_edgecolor=None, barh_linewidth=None, barh_tick_label=None, barh_label=None):
+    outputlist=['Barh', barh_x, barh_y, barh_color, barh_height, barh_align, barh_edgecolor, barh_linewidth, barh_tick_label, barh_label]
+    return outputlist
+    
+#4.scatter plot
+def userscatter_style(scatter_x, scatter_y, scatter_s=None, scatter_c=None, scatter_alpha=None, scatter_cmap='viridis', scatter_label=None):
+    outputlist=['Scatter', scatter_x, scatter_y, scatter_s, scatter_c, scatter_alpha, scatter_cmap, scatter_label]
+    return outputlist
+    
+#6.histogram plot
+def userhist_style(hist_value, hist_bins=10, hist_cumulative=False, hist_histtype='bar', hist_density=False, hist_alpha=None, hist_label=None):
+    outputlist=['Histogram', hist_value, hist_bins, hist_cumulative, hist_histtype, hist_density, hist_alpha, hist_label]
+    return outputlist
+    
+#7. errorbar plot
+def usererrorbar_style(errorbar_x, errorbar_y, errorbar_xerr=None, errorbar_yerr=None, errorbar_uplims=False, errorbar_lolims=False, errorbar_xlolims=False, errorbar_xuplims=False, errorbar_label=None):
+    outputlist=['Errorbar', errorbar_x, errorbar_y, errorbar_xerr, errorbar_yerr, errorbar_uplims, errorbar_lolims, errorbar_xlolims, errorbar_xuplims, errorbar_label]
+    return outputlist
+    
+#8. pie chart plot
+def userpie(pie_value, pie_labels=None, pie_autopact=None, pie_startangle=0, pie_counterclock=True, pie_explode=None, pie_shadow=False, pie_colors=None, pie_wedgeprops=None):
+    outputlist=['Pie Chart', pie_value, pie_labels, pie_autopact, pie_startangle, pie_counterclock, pie_explode, pie_shadow, pie_colors, pie_wedgeprops, pie_label]
+    return outputlist
+
+#9. Heat map plot
+def usermatshow(matshow_2dlist, matshow_cmap=mpl.rcParams["image.cmap"]):
+    outputlist=['Heatmap', matshow_2dlist, matshow_cmap]
+    return outputlist
+
+#additional plot
+#----------------------------------------------------------------------------------------------------------------------------------------
+#10. Hline Plot
+#def userhlines(hlines_y, hlines_xmin, hlines_xmax, hlines_color=None, hlines_linestyle=None, hlines_linewidth=None):
+#    outputlist=[hlines_y, hlines_xmin, hlines_xmax, hlines_color, hlines_linestyle, hlines_linestyle]
+#    return outputlist
+
+#11. Vline Plot
+#def uservlines(vlines_x, vlines_ymin, vlines_ymax, vlines_color=None, vlines_linestyle=None, vlines_linewidth=None):
+#    outputlist=[vlines_x, vlines_ymin, vlines_ymax, vlines_color, vlines_linestyle, vlines_linewidth]
+#    return outputlist
+
+def useraxhline(axhline_y, axhline_xmin=0, axhline_xmax=1, axhline_color=None, axhline_linestyle=None, axhline_linewidth=None, axhline_label=None):
+    outputlist=['Horizontal', axhline_y, axhline_xmin, axhline_xmax, axhline_color, axhline_linestyle, axhline_linewidth, axhline_label]
+    return outputlist
+
+def useraxvline(axvline_x, axvline_ymin=0, axvline_ymax=1, axvline_color=None, axvline_linestyle=None, axvline_linewidth=None, axvline_label=None):
+    outputlist=['Vertical', axvline_x, axvline_ymin, axvline_ymax, axvline_color, axvline_linestyle, axvline_linewidth, axvline_label]
+    return outputlist
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+
+
+#--------------------------------------------------------------------------------------------------------------------------------------------
+    
+#style
+#--------------------------------------------------------------------------------------------------------------------------------------------
+#xlabel style
+def userxlabel(xlabel_name, xlabel_fontdict=None, xlabel_labelpad=None, xlabel_loc=None):
+    return xlabel_name, xlabel_fontdict, xlabel_labelpad, xlabel_loc
+
+#ylabel style
+def userylabel(ylabel_name, ylabel_fontdict=None, ylabel_labelpad=None, ylabel_loc=None):
+    return ylabel_name, ylabel_fontdict, ylabel_labelpad, ylabel_loc
+
+#legend style
+def userlegend(legend_loc='best', legend_ncol=1, legend_fontsize=None, legend_frameon=True, legend_shadow=False):
+    return legend_loc, legend_ncol, legend_fontsize, legend_frameon, legend_shadow
+
+#xlim style
+def userxlim(user_xlimlist):
+    return user_xlimlist
+
+#ylim style
+def userylim(user_ylimlist):
+    return user_ylimlist
+
+#axis style
+def useraxis(user_axislist):
+    return user_axislist
+
+#xscale style
+def userxscale(xscale_function):
+    print("{'function', 'functionlog', 'linear', 'log', 'logit', 'symlog'}")
+    return xscale_function
+    
+#yscale style
+def useryscale(yscale_function):
+    print("{'function', 'functionlog', 'linear', 'log', 'logit', 'symlog'}")
+    return yscale_function
+
+#grid style
+def usergrid(grid_bool, grid_axis='both', grid_color=None, grid_linestyle=None, grid_linewidth=None):
+    return grid_bool, grid_axis, grid_color, grid_linestyle, grid_linewidth
+
+#xticks style
+def userxticks(xticks_range=None, xticks_labels=None, xticks_rotation=None):
+    return xticks_range, xticks_labels, xticks_rotation
+    
+#yticks style
+def useryticks(yticks_range=None, yticks_labels=None, yticks_rotation=None):
+    return yticks_range, yticks_labels, yticks_rotation
+
+#tick_params style
+def usertick_params(tick_params_axis='both',tick_params_direction='inout', tick_params_length=3, tick_params_pad=3, tick_params_labelsize=14, tick_params_width=2, tick_params_color='b', tick_params_labelcolor=None):
+    return tick_params_axis, tick_params_direction, tick_params_length, tick_params_pad, tick_params_labelsize, tick_params_width, tick_params_color, tick_params_labelcolor
+
+#title style
+def usertitle(title_name, title_loc='center', title_pad=6.0, title_fontdict=None):
+    return title_name, title_loc, title_pad, title_fontdict
+
+#text style
+def usertext(text_xposition, text_yposition, text_name, text_fontdict=None, text_rotation=0, text_bbox=None):
+    return text_xposition, text_yposition, text_name, text_fontdict, text_rotation, text_bbox
+
+#twinx style
+def usertwinx():
+    print('Not yet')
+    
+def usertwiny():
+    print('Not yet')
+#----------------------------------------------------------------------------------------------------------------------------------------
+    
+
+#----------------------------------------------------------------------------------------------------------------------------------------
+print("###########################################################################################")
+print("###################                                                 #######################")
+print("###################       Youngjun Park's Graphizer Program         #######################")
+print("###################                                                 #######################")
+print("###################                          version : 1.0          #######################")
+print("###################                                                 #######################")
+print("###################                              2021.10.02         #######################")
+print("###################                      yjpark29@postech.ac.kr     #######################")
+print("###################                        Young-jun Park(CNMD)     #######################")
+print("###################                                                 #######################")
+print("###########################################################################################")
+
+total_graphlist=[]
+user_xfilelist=[]
+user_yfilelist=[]
+user_vfilelist=[]
+user_plotlist=[]
+
+total_xlabellist=[]
+total_ylabellist=[]
+#total_xlabel_combined=[]
+#total_ylabel_combined=[]
+total_legendlist=[]
+total_xlimlist=[]
+total_ylimlist=[]
+total_axislist=[]
+total_xscalelist=[]
+total_yscalelist=[]
+total_gridlist=[]
+total_xtickslist=[]
+total_ytickslist=[]
+total_tick_paramslist=[]
+total_titlelist=[]
+total_textlist=[]
+total_twinxlist=[]
+total_twinylist=[]
+
+#xlabel, ylabel, legend, axis, scale, grid, ticks, title, text on/off
+control={'combine':'on', 'twinaxis':'on', 'control_xlabel':'on', 'control_ylabel':'on', 'control_legend':'on', 'control_axis':'off', 'control_scale':'off', 'control_grid':'off', 'control_xticks':'off', 'control_yticks':'off', 'control_tick_params':'off', 'control_title':'on', 'control_text':'off'}
+
+
+
+user_choice=0
+
+
+#Main Codes
+def Maincode(pwd, file_list, user_choice, total_graphlist, total_xlabellist, total_ylabellist, total_legendlist, total_xlimlist, total_ylimlist, total_axislist, total_xscalelist, total_yscalelist, total_gridlist, total_xtickslist, total_ytickslist, total_tick_paramslist, total_titlelist, total_textlist, total_twinxlist, total_twinylist, user_xfilelist, user_yfilelist, user_vfilelist, control):
+    user_choice=User_Interaction()
+    plt.clf()
+    
+    if user_choice=='q':
+        print("###########################################################################################")
+        print("")
+        print("Exit Young-jun Park's Graphizer Program.")
+        print("")
+        print("###########################################################################################")
+        return user_choice, total_graphlist, total_xlabellist, total_ylabellist, total_legendlist, total_xlimlist, total_ylimlist, total_axislist, total_xscalelist, total_yscalelist, total_gridlist, total_xtickslist, total_ytickslist, total_tick_paramslist, total_titlelist, total_textlist, total_twinxlist, total_twinylist, user_xfilelist, user_yfilelist, user_vfilelist, control
+
+    elif user_choice==1:
+        cq2='q'
+        while cq2=='q':
+            total_graph, file_number, cq1, cq2=user1(pwd,file_list)
+            if cq1=='q':
+                user_choice='r'
+                return user_choice, total_graphlist, total_xlabellist, total_ylabellist, total_legendlist, total_xlimlist, total_ylimlist, total_axislist, total_xscalelist, total_yscalelist, total_gridlist, total_xtickslist, total_ytickslist, total_tick_paramslist, total_titlelist, total_textlist, total_twinxlist, total_twinylist, user_xfilelist, user_yfilelist, user_vfilelist, control
+
+        total_graphlist.append(total_graph)
+        if str(type(file_number))=="<class 'list'>":
+            user_xfilelist.append(file_number[0])
+            user_yfilelist.append(file_number[1])
+        elif str(type(file_number))=="<class 'int'>":
+            user_vfilelist.append(file_number)
+        elif str(type(file_number))=="<class 'str'>" and file_number=='vlines' or file_number=='hlines':
+            print('You added Linear Lines(vlines or hlines).')
+        else:
+            print('filelist error')
+    
+    elif user_choice==2:
+        total_graphlist,cq=user2(total_graphlist)
+        if cq=='q':
+            user_choice='r'
+            return user_choice, total_graphlist, total_xlabellist, total_ylabellist, total_legendlist, total_xlimlist, total_ylimlist, total_axislist, total_xscalelist, total_yscalelist, total_gridlist, total_xtickslist, total_ytickslist, total_tick_paramslist, total_titlelist, total_textlist, total_twinxlist, total_twinylist, user_xfilelist, user_yfilelist, user_vfilelist, control
+
+    elif user_choice==3:
+        total_graphlist, user_xfilelist, user_yfilelist, user_vfilelist, total_xlabellist, total_ylabellist, total_axislist, total_titlelist=user3(total_graphlist, user_xfilelist, user_yfilelist, user_vfilelist, total_xlabellist, total_ylabellist, total_axislist, total_titlelist)
+               
+    elif len(total_graphlist)==0 and user_choice>3:
+        print('You Must Choice Your Graph.')
+        user_choice='r'
+                
+    elif user_choice==4:
+        print('1.X-ON + Y-ON / 2.X-OFF + Y-OFF / 3.X-ON + Y-OFF / 4.X-OFF + Y-ON')  
+        user_choice4_1=input('Xlabel & Ylabel Turn on / off : ')
+        if user_choice4_1=='q':
+            user_choice='r'
+            return user_choice, total_graphlist, total_xlabellist, total_ylabellist, total_legendlist, total_xlimlist, total_ylimlist, total_axislist, total_xscalelist, total_yscalelist, total_gridlist, total_xtickslist, total_ytickslist, total_tick_paramslist, total_titlelist, total_textlist, total_twinxlist, total_twinylist, user_xfilelist, user_yfilelist, user_vfilelist, control
+        user_choice4_1=int(user_choice4_1)
+        
+        if user_choice4_1==1:
+            control['control_xlabel']='on'
+            control['control_ylabel']='on'
+        elif user_choice4_1==2:
+            control['control_xlabel']='off'
+            control['control_ylabel']='off'
+        elif user_choice4_1==3:
+            control['control_xlabel']='on'
+            control['control_ylabel']='off'
+        elif user_choice4_1==4:
+            control['control_xlabel']='off'
+            control['control_ylabel']='on'
+        else:
+            print('user_choice4 error')
+        total_xlabellist, total_ylabellist = user4(total_xlabellist, total_ylabellist)
+    
+    elif user_choice==5:
+        print('1.ON / 2.OFF : ')  
+        user_choice5_1=input('Legend Turn on / off : ')
+        if user_choice5_1=='q':
+            user_choice='r'
+            return user_choice, total_graphlist, total_xlabellist, total_ylabellist, total_legendlist, total_xlimlist, total_ylimlist, total_axislist, total_xscalelist, total_yscalelist, total_gridlist, total_xtickslist, total_ytickslist, total_tick_paramslist, total_titlelist, total_textlist, total_twinxlist, total_twinylist, user_xfilelist, user_yfilelist, user_vfilelist, control
+        user_choice5_1=int(user_choice5_1)
+        
+        if user_choice5_1==1:
+            control['control_legend']='on'
+        elif user_choice5_1==2:
+            control['control_legend']='off'
+        else:
+            print('user_choice5 error')
+            
+        total_legendlist=user5(total_legendlist)
+
+    elif user_choice==6:
+        print('1.ON / 2.OFF : ')
+        user_choice6_1=input('Axis Turn on / off : ')
+        if user_choice6_1=='q':
+            user_choice='r'
+            return user_choice, total_graphlist, total_xlabellist, total_ylabellist, total_legendlist, total_xlimlist, total_ylimlist, total_axislist, total_xscalelist, total_yscalelist, total_gridlist, total_xtickslist, total_ytickslist, total_tick_paramslist, total_titlelist, total_textlist, total_twinxlist, total_twinylist, user_xfilelist, user_yfilelist, user_vfilelist, control
+        user_choice6_1=int(user_choice6_1)
+        
+        if user_choice6_1==1:
+            control['control_axis']='on'
+        elif user_choice6_1==2:
+            control['control_axis']='off'
+        else:
+            print('user_choice6 error')
+        total_axislist=user6(total_axislist)
+
+        
+    elif user_choice==7:
+        print('1.X-ON + Y-ON / 2.X-OFF + Y-OFF / 3.X-ON + Y-OFF / 4.X-OFF + Y-ON')  
+        user_choice7_1=input('Xscale & Yscale Turn on / off : ')
+        if user_choice7_1=='q':
+            user_choice='r'
+            return user_choice, total_graphlist, total_xlabellist, total_ylabellist, total_legendlist, total_xlimlist, total_ylimlist, total_axislist, total_xscalelist, total_yscalelist, total_gridlist, total_xtickslist, total_ytickslist, total_tick_paramslist, total_titlelist, total_textlist, total_twinxlist, total_twinylist, user_xfilelist, user_yfilelist, user_vfilelist, control
+        user_choice7_1=int(user_choice7_1)
+        
+        if user_choice7_1==1:
+            control_xscale='on'
+            control_yscale='on'
+        elif user_choice7_1==2:
+            control_xscale='off'
+            control_yscale='off'
+        elif user_choice7_1==3:
+            control_xscale='on'
+            control_yscale='off'
+        elif user_choice7_1==4:
+            control_xscale='off'
+            control_yscale='on'
+        else:
+            print('user_choice7 error')
+        total_xscalelist, total_yscalelist=user7(total_xscalelist, total_yscalelist)
+
+    elif user_choice==8:
+        print('1.ON / 2.OFF : ')
+        user_choice8_1=input('grid Turn on / off : ')
+        if user_choice8_1=='q':
+            user_choice='r'
+            return user_choice, total_graphlist, total_xlabellist, total_ylabellist, total_legendlist, total_xlimlist, total_ylimlist, total_axislist, total_xscalelist, total_yscalelist, total_gridlist, total_xtickslist, total_ytickslist, total_tick_paramslist, total_titlelist, total_textlist, total_twinxlist, total_twinylist, user_xfilelist, user_yfilelist, user_vfilelist, control
+        user_choice8_1=int(user_choice8_1)
+        if user_choice8_1==1:
+            control['control_grid']='on'
+        elif user_choice8_1==2:
+            control['control_grid']='off'
+        else:
+            print('user_choice8 error')
+        total_gridlist=user8(total_gridlist)
+
+    elif user_choice==9:
+        print('1.X-ON + Y-ON / 2.X-OFF + Y-OFF / 3.X-ON + Y-OFF / 4.X-OFF + Y-ON')  
+        user_choice9_1=input('Xticks & Yticks Turn on / off : ')
+        if user_choice9_1=='q':
+            user_choice='r'
+            return user_choice, total_graphlist, total_xlabellist, total_ylabellist, total_legendlist, total_xlimlist, total_ylimlist, total_axislist, total_xscalelist, total_yscalelist, total_gridlist, total_xtickslist, total_ytickslist, total_tick_paramslist, total_titlelist, total_textlist, total_twinxlist, total_twinylist, user_xfilelist, user_yfilelist, user_vfilelist, control
+        user_choice9_1=int(user_choice9_1)
+
+        if user_choice9_1==1:
+            control['control_xticks']='on'
+            control['control_yticks']='on'
+        elif user_choice9_1==2:
+            control['control_xticks']='off'
+            control['control_yticks']='off'
+        elif user_choice9_1==3:
+            control['control_xticks']='on'
+            control['control_yticks']='off'
+        elif user_choice9_1==4:
+            control['control_xticks']='off'
+            control['control_yticks']='on'
+        else:
+            print('user_choice9 error')
+        total_xticklist, total_yticklist, total_graphlist=user9(total_xticklist, total_yticklist, total_graphlist)
+
+    for i in range(len(total_graphlist)):
+        if total_graphlist[i][0].split('(')[0]=='Line': #Line Graph
+            plt.plot(total_graphlist[i][1],total_graphlist[i][2],linestyle=total_graphlist[i][3], solid_capstyle=total_graphlist[i][4], dash_capstyle=total_graphlist[i][5], linewidth=total_graphlist[i][6], marker=total_graphlist[i][7], markersize=total_graphlist[i][8], color=total_graphlist[i][9], label=total_graphlist[i][10])
+        elif total_graphlist[i][0].split('(')[0]=='Bar': #Bar Graph
+            plt.bar(total_graphlist[i][1],total_graphlist[i][2], color=total_graphlist[i][3], width=total_graphlist[i][4], align=total_graphlist[i][5], edgecolor=total_graphlist[i][6], linewidth=total_graphlist[i][7], tick_label=total_graphlist[i][8], label=total_graphlist[i][9])
+        elif total_graphlist[i][0].split('(')[0]=='Barh': #Barh Graph
+            plt.barh(total_graphlist[i][1],total_graphlist[i][2], color=total_graphlist[i][3], height=total_graphlist[i][4], align=total_graphlist[i][5], edgecolor=total_graphlist[i][6], linewidth=total_graphlist[i][7], tick_label=total_graphlist[i][8], label=total_graphlist[i][9])
+        elif total_graphlist[i][0].split('(')[0]=='Scatter': #Scatter Graph
+            plt.scatter(total_graphlist[i][1],total_graphlist[i][2], s=total_graphlist[i][3], c=total_graphlist[i][4], alpha=total_graphlist[i][5], cmap=total_graphlist[i][6], label=total_graphlist[i][7])#            elif total_graphlist[i][0]=='Histogram': #Histogram Graph
+        elif total_graphlist[i][0].split('(')[0]=='Errorbar': #Errorbar Graph
+            plt.errorbar(total_graphlist[i][1],total_graphlist[i][2], xerr=total_graphlist[i][3], yerr=total_graphlist[i][4], uplims=total_graphlist[i][5], lolims=total_graphlist[i][6], xlolims=total_graphlist[i][7], xuplims=total_graphlist[i][8], label=total_graphlist[i][9])
+        elif total_graphlist[i][0].split('(')[0]=='Histogram': #Scatter Graph
+            plt.hist(total_graphlist[i][1], bins=total_graphlist[i][2], cumulative=total_graphlist[i][3], histtype=total_graphlist[i][4], density=total_graphlist[i][5], alpha=total_graphlist[i][6], label=total_graphlist[i][7])
+        elif total_graphlist[i][0].split('(')[0]=='Pie Chart': #Pie Chart Graph
+            plt.pie(total_graphlist[i][1], labels=total_graphlist[i][2], autopact=total_graphlist[i][3], startangle=total_graphlist[i][4], counterclock=total_graphlist[i][5], explode=total_graphlist[i][6], shadow=total_graphlist[i][7], colors=total_graphlist[i][8], wedgeprops=total_graphlist[i][9])
+        elif total_graphlist[i][0].split('(')[0]=='Heatmap': #Heatmap Graph
+            plt.matshow(total_graphlist[i][1], cmap=total_graphlist[i][2])
+        elif total_graphlist[i][0].split('(')[0]=='Horizontal': #Horizontal Line Graph
+            plt.axhline(total_graphlist[i][1], total_graphlist[i][2], total_graphlist[i][3], color=total_graphlist[i][4], linestyle=total_graphlist[i][5], linewidth=total_graphlist[i][6], label=total_graphlist[i][7])
+        elif total_graphlist[i][0].split('(')[0]=='Vertical': #Horizontal Line Graph
+            plt.axhline(total_graphlist[i][1], total_graphlist[i][2], total_graphlist[i][3], color=total_graphlist[i][4], linestyle=total_graphlist[i][5], linewidth=total_graphlist[i][6], label=total_graphlist[i][7])
+        else:
+            print('Plot Error')
+
+    #label, legend, xlim, ylim, axis, xscale, yscale, grid, xtick, yticks, tick_params, title, text, twinx, twiny Setting
+    #-----------------------------------------------------------------------------------------------------------------------
+    
+    if user_choice!='r':
+        #xlabel Setting
+        user_xfilelist2=[file_list[i] for i in user_xfilelist]
+        if len(total_xlabellist)==0 and len(user_xfilelist2)==1: #total_ylabellist에 아무것도 없으면
+            xlabelname=user_xfilelist2[0]
+            xlabellist=userxlabel(xlabelname, xlabel_fontdict=None, xlabel_labelpad=None, xlabel_loc=None)
+            total_xlabellist=xlabellist
+            if control['control_xlabel']=='on': 
+                plt.xlabel(xlabelname, fontdict=None, labelpad=None, loc=None)
+
+        elif len(total_xlabellist) < len(user_xfilelist2):
+                user_xfilelist2=list(set(user_xfilelist2))
+                xlabelname=' or '.join(user_xfilelist2)
+                xlabellist=userxlabel(xlabelname, xlabel_fontdict=None, xlabel_labelpad=None, xlabel_loc=None)
+                total_xlabellist=xlabellist
+                if control['control_xlabel']=='on':
+                    plt.xlabel(xlabelname, fontdict=None, labelpad=None, loc=None)
+
+        elif len(total_xlabellist) == len(user_xfilelist2) and control['combine']=='off':
+            for i in range(len(total_xlabellist)):
+                xlabel_name=total_xlabellist[i][0]
+                xlabel_fontdict=total_xlabellist[i][1]
+                xlabel_labelpad=total_xlabellist[i][2]
+                xlabel_loc=total_xlabellist[i][3]
+            if control['control_xlabel']=='on':
+                plt.xlabel(xlabel_name, fontdict=xlabel_fontdict, labelpad=xlabel_labelpad, loc=xlabel_loc)
+        
+        else:
+            print('xlabel error')
+
+        #ylabel Setting
+        user_yfilelist2=[file_list[i] for i in set(user_yfilelist)] #user_yfilelist2[string형태 저장소]에 user_yfilelist[번호형태 저장소]를 변환해서 넣음 
+        if len(total_ylabellist)==0 and len(user_yfilelist2)==1: #total_ylabellist에 아무것도 없으면
+            ylabelname=user_yfilelist2[0] #라벨 이름에 해당하는 1개의 이름을 대입시키고
+            ylabellist=userylabel(ylabelname, ylabel_fontdict=None, ylabel_labelpad=None, ylabel_loc=None) #ylabellist에 userylabel함수를 이용해 저장시킴.
+            total_ylabellist=ylabellist #그리고 그것을 total_ylabellist에 통째로 추가함.
+            if control['control_ylabel']=='on': 
+                plt.ylabel(ylabelname, fontdict=None, labelpad=None, loc=None)
+
+        elif len(total_ylabellist) < len(user_yfilelist2): #subplot 시작되면, total_ylabllist=ylabellist 수정?
+                user_yfilelist2=list(set(user_yfilelist2))
+                ylabelname=' or '.join(user_yfilelist2)
+                ylabellist=userylabel(ylabelname, ylabel_fontdict=None, ylabel_labelpad=None, ylabel_loc=None)
+                total_ylabellist=ylabellist
+                if control['control_ylabel']=='on':
+                    plt.ylabel(ylabelname, fontdict=None, labelpad=None, loc=None)
+
+        elif len(total_ylabellist) == len(user_yfilelist2) and control['combine']=='off':
+            for i in range(len(total_ylabellist)):
+                ylabel_name=total_ylabellist[i][0]
+                ylabel_fontdict=total_ylabellist[i][1]
+                ylabel_labelpad=total_ylabellist[i][2]
+                ylabel_loc=total_ylabellist[i][3]
+            if control['control_ylabel']=='on':
+                plt.ylabel(ylabel_name, fontdict=ylabel_fontdict, labelpad=ylabel_labelpad, loc=ylabel_loc)
+
+        else:
+            print('ylabel error')
+
+        #legend Setting
+        if len(total_legendlist)==0:
+            total_legendlist=userlegend(legend_loc='best', legend_ncol=1, legend_fontsize=None, legend_frameon=True, legend_shadow=False)
+            legend_loc=total_legendlist[0]
+            legend_ncol=total_legendlist[1]
+            legend_fontsize=total_legendlist[2]
+            legend_frameon=total_legendlist[3]
+            legend_shadow=total_legendlist[4]
+            if control['control_legend']=='on':
+                plt.legend(loc=legend_loc, ncol=legend_ncol, fontsize=legend_fontsize, frameon=legend_frameon, shadow=legend_shadow)
+        elif len(total_legendlist)>0:
+            legend_loc=total_legendlist[0]
+            legend_ncol=total_legendlist[1]
+            legend_fontsize=total_legendlist[2]
+            legend_frameon=total_legendlist[3]
+            legend_shadow=total_legendlist[4]
+            if control['control_legend']=='on':
+                plt.legend(loc=legend_loc, ncol=legend_ncol, fontsize=legend_fontsize, frameon=legend_frameon, shadow=legend_shadow)
+
+        else:
+            print('legend error')
+
+        #axis Setting
+        if len(total_axislist)==0: 
+            axislist=plt.axis()
+            total_axislist.append(axislist)
+            
+        elif len(total_axislist)==1 and control['combine']=='on': #combined plot
+            if control['control_axis']=='on':
+                axislist=total_axislist[0]
+                plt.axis(axislist)
+            
+        elif len(total_axislist)>1 and control['combine']=='off':
+            for i in range(len(total_axislist)):
+                axislist=total_axislist[i]
+            if control['control_axis']=='on':
+                plt.axis(axislist)
+                
+        else:
+            print('axis error')
+
+        #xscale Setting
+        if len(total_xscalelist)==0:
+            total_xscalelilst=[None]
+
+        elif len(total_xscalelist)==1 and control['combine']=='on' and total_xscalelist[0] != None:
+            xscale_function=total_xscalelist[0]
+            if control_xscale=='on':
+                plt.xscale(xscale_function)
+
+        elif len(total_xscalelist)>1 and control['combine']=='off':
+            for i in range(len(total_xscalelist)):
+                xscale_function=total_xscalelist[i][0]
+            if control_xscale=='on':
+                plt.xscale(xscale_function)
+                
+        else:
+            print('xscale error')
+
+        #yscale Setting
+        if len(total_yscalelist)==0:
+            total_yscalelilst=[None]
+
+        elif len(total_yscalelist)==1 and control['combine']=='on' and total_yscalelist[0]!=None:
+            yscale_function=total_yscalelist[0]
+            if control_yscale=='on':
+                plt.yscale(yscale_function)
+
+        elif len(total_yscalelist)>1 and control['combine']=='off':
+            for i in range(len(total_yscalelist)):
+                yscale_function=total_yscalelist[i]
+            if control_yscale=='on':
+                print(yscale_function)
+                plt.yscale(yscale_function)
+        else:
+            print('yscale error')
+
+        #grid Setting
+        if len(total_gridlist)==0:
+            total_gridlist=usergrid(grid_bool=False, grid_axis='both', grid_color='black', grid_linestyle='-', grid_linewidth=2)
+            
+        elif len(total_gridlist)>0 and control['combine']=='on': #combined
+            if control['control_grid']=='on':
+                grid_bool=total_gridlist[0]
+                grid_axis=total_gridlist[1]
+                grid_color=total_gridlist[2]
+                grid_linestyle=total_gridlist[3]
+                grid_linewidth=total_gridlist[4]
+                plt.grid(grid_bool, axis=grid_axis, color=grid_color, linestyle=grid_linestyle, linewidth=grid_linewidth)
+            
+        elif len(total_gridlist)>0 and control['combine']=='off':
+            #for i in range(len(total_gridlist)):
+            grid_bool=total_gridlist[0]
+            grid_axis=total_gridlist[1]
+            grid_color=total_gridlist[2]
+            grid_linestyle=total_gridlist[3]
+            grid_linewidth=total_gridlist[4]
+            if control['control_grid']=='on':
+                plt.grid(grid_bool, axis=grid_axis, color=grid_color, linestyle=grid_linestyle, linewidth=grid_linewidth)
+        else:
+            print('grid error')
+            
+
+        #xticks Setting
+        if len(total_xtickslist)==0:
+            xtickslist=list(plt.xticks()[0])
+            total_xtickslist=userxticks(xticks_range=xtickslist, xticks_labels=None, xticks_rotation=None)
+            
+        elif len(total_xtickslist)>0 and control['combine']=='on': #combined
+            if control['control_xticks']=='on':
+                xticks_range=total_xtickslist[0]
+                xticks_labels=total_xtickslist[1]
+                xticks_rotation=total_xtickslist[2]
+                plt.xticks(xticks_range, labels=xticks_labels, rotation=xticks_rotation)
+            
+        elif len(total_xtickslist)>0 and control['combine']=='off':
+            for i in range(len(total_xtickslist)):
+                xticks_range=total_xtickslist[0]
+                xticks_labels=total_xtickslist[1]
+                xticks_rotation=total_xtickslist[2]
+            if control['control_xticks']=='on':
+                plt.xticks(xticks_range, labels=xticks_labels, rotation=xticks_rotation)
+        
+        else:
+            print('xticks error')
+
+        #yticks Setting
+        if len(total_ytickslist)==0:
+            ytickslist=list(plt.yticks()[0])
+            total_ytickslist=useryticks(yticks_range=ytickslist, yticks_labels=None, yticks_rotation=None)
+        
+        elif len(total_ytickslist)>0 and control['combine']=='on':
+            if control['control_yticks']=='on':
+                yticks_range=total_ytickslist[0]
+                yticks_labels=total_ytickslist[1]
+                yticks_rotation=total_ytickslist[2]
+                plt.yticks(xticks_range, labels=yticks_labels, rotation=yticks_rotation)
+                           
+        elif len(total_ytickslist)>0 and control['combine']=='off':
+            for i in range(len(total_ytickslist)):
+                yticks_range=total_ytickslist[0]
+                yticks_labels=total_ytickslist[1]
+                yticks_rotation=total_ytickslist[2]
+            if control['control_yticks']=='on':
+                plt.yticks(xticks_range, labels=yticks_labels, rotation=yticks_rotation)
+                
+        else:
+            print('yticks error')
+
+        #tick_params Setting
+        if len(total_tick_paramslist)==0:
+            total_tick_paramslist=usertick_params(tick_params_axis='both',tick_params_direction='inout', tick_params_length=6, tick_params_pad=6, tick_params_labelsize=11, tick_params_width=2, tick_params_color='black', tick_params_labelcolor='black')
+            
+        elif len(total_tick_paramslist)>0 and control['combine']=='on':
+            if control['control_tick_params']=='on':
+                tick_params_axis=total_tick_paramslist[0]
+                tick_params_direction=total_tick_paramslist[1]
+                tick_params_length=total_tick_paramslist[2]
+                tick_params_pad=total_tick_paramslist[3]
+                tick_params_labelsize=total_tick_paramslist[4]
+                tick_params_width=total_tick_paramslist[5]
+                tick_params_color=total_tick_paramslist[6]
+                tick_params_labelcolor=total_tick_paramslist[7]
+                plt.tick_params(axis=tick_params_axis, direction=tick_params_direction, length=tick_params_length, pad=tick_params_pad, labelsize=tick_params_labelsize, width=tick_params_width, color=tick_params_color, labelcolor=tick_params_labelcolor)
+
+        elif len(total_tick_paramslist)>0 and control['combine']=='off':
+            for i in range(len(total_tick_paramslist)):
+                tick_params_axis=total_tick_paramslist[0]
+                tick_params_direction=total_tick_paramslist[1]
+                tick_params_length=total_tick_paramslist[2]
+                tick_params_pad=total_tick_paramslist[3]
+                tick_params_labelsize=total_tick_paramslist[4]
+                tick_params_width=total_tick_paramslist[5]
+                tick_params_color=total_tick_paramslist[6]
+                tick_params_labelcolor=total_tick_paramslist[7]
+            if control['control_tick_params']=='on':
+                plt.tick_params(axis=tick_params_axis, direction=tick_params_direction, length=tick_params_length, pad=tick_params_pad, labelsize=tick_params_labelsize, width=tick_params_width, color=tick_params_color, labelcolor=tick_params_labelcolor)
+
+        else:
+            print('tick_params error')
+                
+        #title Setting
+        print(total_titlelist)
+        print(user_xfilelist)
+        print(user_yfilelist)
+        if len(total_titlelist)==0 and ( len(user_xfilelist)==1 and len(user_yfilelist)==1 ) or len(user_vfilelist)==1:
+            if len(user_xfilelist)==1 and len(user_yfilelist)==1:
+                xtitlename=user_xfilelist2[0]
+                ytitlename=user_yfilelist2[0]
+                titlename=xtitlename+' vs. '+ytitlename
+            else:
+                titlename=user_vfilelist[0]
+            total_titlelist=usertitle(titlename, title_loc='center', title_pad=6.0, title_fontdict=None)
+            if type(total_titlelist)!="<class 'list'>":
+                total_titlelist=[total_titlelist]
+            if control['control_title']=='on':
+                plt.title(titlename, loc='center', pad=6.0, fontdict=None)
+                
+        elif len(total_titlelist)==1 and ( len(user_xfilelist)==1 and len(user_yfilelist)==1 ) or len(user_vfilelist)==1:
+            if len(user_xfilelist)==1 and len(user_yfilelist)==1:
+                xtitlename=user_xfilelist2[0]
+                ytitlename=user_yfilelist2[0]
+                titlename=xtitlename+' vs. '+ytitlename
+            else:
+                titlename=user_vfilelist[0]
+            total_titlelist=usertitle(titlename, title_loc='center', title_pad=6.0, title_fontdict=None)
+            if type(total_titlelist)!="<class 'list'>":
+                total_titlelist=[total_titlelist]
+            if control['control_title']=='on':
+                plt.title(titlename, loc='center', pad=6.0, fontdict=None)
+
+        elif len(total_titlelist)==1 and len(user_xfilelist)>1 or len(user_yfilelist)>1 or len(user_vfilelist)>1:
+            xtitlename=' or '.join(user_xfilelist2)
+            ytitlename=' or '.join(user_yfilelist2)
+            titlename=xtitlename+' vs. '+ytitlename
+            total_titlelist=usertitle(titlename, title_loc='center', title_pad=6.0, title_fontdict=None)
+            if type(total_titlelist)!="<class 'list'>":
+                total_titlelist=[total_titlelist]
+            if control['control_title']=='on':
+                plt.title(titlename, loc='center', pad=6.0, fontdict=None)
+                
+        elif len(total_titlelist)==0 and len(user_xfilelist)==1 and len(user_yfilelist)==1:
+            print(totla_titlelist)
+        elif len(total_titlelist)>1 and control['combine']=='off':
+            for i in range(len(total_titlelist)):
+                title_name=total_titlelist[0]
+                title_loc=total_titlelist[1]
+                title_pad=total_titlelist[2]
+                title_fontdict=total_titlelist[3]
+            if control['control_title']=='on':
+                plt.title(title_name, loc=title_loc, pad=title_pad, fontdict=title_fontdict)
+                
+        else:
+            print('title error')
+
+        #text Setting - 어느 텍스트를 선택할 것인지 필요
+        if len(total_textlist)>1:
+            for i in range(len(total_textlist)):
+                text_xposition=total_textlist[i][0]
+                text_yposition=total_textlist[i][1]
+                text_name=total_textlist[i][2]
+                text_fontdict=total_textlist[i][3]
+                text_rotation=total_textlist[i][4]
+                text_bbox=total_textlist[i][5]
+                if control['control_text']=='on':
+                    plt.text(text_xposition, text_yposition, text_name, fontdict=text_fontdict, rotation=text_rotation, bbox=text_bbox)
+
+        #twinx Setting
+        #twiny Setting
+
+        plt.show()
+    return user_choice, total_graphlist, total_xlabellist, total_ylabellist, total_legendlist, total_xlimlist, total_ylimlist, total_axislist, total_xscalelist, total_yscalelist, total_gridlist, total_xtickslist, total_ytickslist, total_tick_paramslist, total_titlelist, total_textlist, total_twinxlist, total_twinylist, user_xfilelist, user_yfilelist, user_vfilelist, control
+
+    
+
+
+total_graphlist=[]
+#print(total_graphlist)
+ugl=[1,1]
+while user_choice!='q':
+    [user_choice, total_graphlist, total_xlabellist, total_ylabellist, total_legendlist, total_xlimlist, total_ylimlist, total_axislist, total_xscalelist, total_yscalelist, total_gridlist, total_xtickslist, total_ytickslist, total_tick_paramslist, total_titlelist, total_textlist, total_twinxlist, total_twinylist, user_xfilelist, user_yfilelist, user_vfilelist, control] = Maincode(pwd, file_list, user_choice, total_graphlist, total_xlabellist, total_ylabellist, total_legendlist, total_xlimlist, total_ylimlist, total_axislist, total_xscalelist, total_yscalelist, total_gridlist, total_xtickslist, total_ytickslist, total_tick_paramslist, total_titlelist, total_textlist, total_twinxlist, total_twinylist, user_xfilelist, user_yfilelist, user_vfilelist, control)
+    plt.show()
+
+
+    
+
+#if len(xindex)==0:
+#    plt.plot(Xdata, Ydata, label=file_list[Ynumber])
+#    plt.plot(Xdata, Adata, label=file_list[Anumber])
+#    #plt.tight_layout()#
+
+#elif len(xindex)!=0:
+#    plt.plot(xindex,Ydata,label=file_list[Ynumber])
+#    plt.xticks(xindex, labels=Xdata)
+#    #홀수만 남기기거나 되돌리기
+#    [xindex2,Xdata2]=ifdatastring(xindex,Xdata)
+#    plt.xticks(xindex2, labels=Xdata2)
+  
+
+#plt.xlabel(file_list[Xnumber], labelpad=15)
+#plt.ylabel(file_list[Ynumber], labelpad=15)
+#plt.legend()
+#plt.tight_layout()
+#plt.show()
+
+#plt.show()
+
+plt.show()
+
+
+imagename='gpz_'+file_list[Xnumber]+file_list[Ynumber]+'.pdf' #image name
+plt.savefig(imagename, facecolor='#eeeeee') # #eeeeee : 배경색을 회색으로 해서 저장 

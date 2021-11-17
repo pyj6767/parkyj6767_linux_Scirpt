@@ -1,0 +1,66 @@
+#!/bin/sh
+#Script Name : pvariation | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Discription
+#: For INCAR Tag Variation Test, It makes Job Directories
+#Condition
+
+#Tag Input
+echo "-------------------------------------------------------------------"
+read -p 'Input INCAR Tag for variation : ' Tag
+Tag=`echo $Tag | tr '[a-z]' '[A-Z]'`
+echo "-------------------------------------------------------------------"
+echo "Your Input : $Tag"
+echo "-------------------------------------------------------------------"
+
+#Read Input
+echo '-------------------------------------------------'
+read -p 'Initial '"$Tag"' (default : 1) : ' initial
+echo '-------------------------------------------------'
+read -p 'Increment (default : 0.1) : ' increment
+echo '-------------------------------------------------'
+read -p 'End '"$Tag"' (default : 10) : ' end
+echo '-------------------------------------------------'
+
+#default value setting($initial)
+if [[ $initial == $String22 ]]
+then
+initial=1
+fi
+#Default Value Setting($increment)
+if [[ $increment == $String22 ]]
+then
+increment=0.1
+fi
+
+#Default Value Setting($endencut)
+if [[ $end == $String22 ]]
+then
+endencut=10
+fi
+
+#For User, Check Input
+echo '-------------------------------------------------'
+echo "Initial $Tag = $initial" " || Increment = $increment " " || End = $end "
+echo '-------------------------------------------------'
+
+
+for i in `seq "$initial" "$increment" "$end"`
+do
+#Find Tag Parameter in INCAR
+tagline=`grep -n $Tag INCAR | sed "s/#//" | awk '{if( $2 == "'"$Tag"'" ){printf($0)}}'`
+linenumber=`echo $tagline | awk '{print $1}' | sed -e 's/\://g'`
+originaltag=`echo $tagline | awk -F"=" '{print $2}' | awk '{print $1}'`
+
+#Substituting Tag Parameter
+sed -i ''"$linenumber"'s/'"$originaltag"'/'"$i"'/' INCAR
+
+#filename setting
+iteration=`expr $iteration + 1`
+mkdir $iteration\.$Tag\_$i
+cp POSCAR KPOINTS POTCAR INCAR run.sh $iteration\.$Tag\_$i
+echo $iteration\.$Tag\_$i written!!
+
+done
+
+exit 0
+

@@ -1,0 +1,13 @@
+#!/bin/sh
+#Script Name : gfind | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: Find Directories of files
+
+
+find ~/ -name "*$1*" 2> /dev/null | awk '
+BEGIN{button=0; Num = 0}
+{
+  if( $1 != "nnnn" ){button=0;Num=Num + 1;printf("%2d ", Num);printf(": %5s",$1);printf("\n")}
+}'
+exit 0 
+

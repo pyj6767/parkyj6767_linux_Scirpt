@@ -1,0 +1,23 @@
+#!/bin/sh
+#Script Name : pscf | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: Parallel scf calculation setting Code, It removes residual files such as vasprun.xml EIGENVAL OUTCAR relax.out ...
+#Condition : There must be at least 1 work directory in current address
+#It is not completed!!!
+
+#directorys=`ls -d $(pwd)/*`
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+#num_of_dirs=`echo $directorys | awk -F" " '{print NF}'`
+num_of_dirs=`echo $directorys | wc -w`
+#echo "directorys : $directorys"
+#echo "number of directorys : $num_of_dirs"
+
+for i in $(seq $num_of_dirs)
+do
+#dir_name=`echo $directorys | awk -v n=$i '{ print $n }'`
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+cp $(pwd)/$dir_name/CONTCAR $(pwd)/$dir_name/POSCAR
+rm -v !("INCAR"|"POTCAR"|"POSCAR"|"KPOINTS"|"run.sh"|"CHGCAR"|"WAVECAR") $(pwd)/$dir_name
+
+done
+exit 0

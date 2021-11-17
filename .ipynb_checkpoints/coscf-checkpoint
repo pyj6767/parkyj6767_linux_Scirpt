@@ -1,0 +1,22 @@
+#!/bin/sh
+#Script Name : coscf | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: It copy CHGCAR, CONTCAR in current directory to other directories
+
+if [ $#  -lt 1 ]; then
+        echo "coscf [dir1] [dir2] [dir3] ..."
+        exit 0
+fi
+
+arg=$*
+
+#for i in $@
+for i in $*
+do
+#direcs=`echo $arg | awk '{ print $$i }'`
+echo 'copy CHGCAR and CONTCAR to : ' $i
+#direcs=`echo $arg | awk '{ gsub("/","",$i); print $i }'`
+cp CHGCAR $(pwd)/$i
+cp CONTCAR $(pwd)/$i/POSCAR
+done
+exit 0

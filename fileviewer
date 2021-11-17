@@ -1,0 +1,52 @@
+#!/bin/sh
+#Script Name : fileviewer | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: Parallel fileviewer setting Code
+#Condition : There must be at least 1 work directory in current address
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+echo "-------------------------------------------------------------------"
+read -p "filename which you want to view : " fname
+echo "-------------------------------------------------------------------"
+echo "Your Input : $fname"
+echo "-------------------------------------------------------------------"
+read -p "All(1) | head -5(2) | tail -5(3) : " choice
+echo "==================================================================="
+
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+
+if [ -e $(pwd)/$dir_name/$fname ]; then
+
+if [[ $choice == '1' ]];then
+
+echo $dir_name
+echo "-------------------------------------------------------------------"
+echo "$(cat $(pwd)/$dir_name/$fname)"
+
+elif [[ $choice == '2' ]];then
+echo $dir_name
+echo "-------------------------------------------------------------------"
+echo "$(head -5 $(pwd)/$dir_name/$fname)"
+
+else
+echo $dir_name
+echo "-------------------------------------------------------------------"
+echo "$(tail -5 $(pwd)/$dir_name/$fname)"
+
+fi
+
+else
+echo $dir_name : \<-----------------------There is No relax.out file.
+
+fi
+
+echo "===================================================================="
+
+done
+
+exit 0
+

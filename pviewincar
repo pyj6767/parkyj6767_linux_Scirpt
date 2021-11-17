@@ -1,0 +1,29 @@
+#!/bin/sh
+#Script Name : pviewincar | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Discription
+#: For Scanning INCAR Tag, It makes Job Directories
+#Condition
+
+#Tag Input
+echo "-------------------------------------------------------------------"
+read -p 'Input INCAR Tag for Scan : ' Tag
+Tag=`echo $Tag | tr '[a-z]' '[A-Z]'`
+echo "-------------------------------------------------------------------"
+echo "Your Input : $Tag"
+echo "-------------------------------------------------------------------"
+
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+#-------------------------------------------------------------------------------------
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+echo $dir_name
+echo '-----------------------------------------------------------------------------------'
+grep $Tag $(pwd)/$dir_name/INCAR | awk '{if( $1 == "'"$Tag"'" ){print $1 " " $2 " " $3 " " $4 " " $5 " " $6 " ....."}}'
+grep $Tag $(pwd)/$dir_name/INCAR | awk '{if( $2 == "'"$Tag"'" ){print $1 " " $2 " " $3 " " $4 " " $5 " " $6 " ....."}}'
+echo '==================================================================================='
+
+done

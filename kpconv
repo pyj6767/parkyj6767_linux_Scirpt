@@ -1,0 +1,46 @@
+#!/bin/sh
+#Script Name : kpconv | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: For K-Point Convergence Test It makes Job Directories
+#Condition
+#: There are POSCAR, KPOINTS, POTCAR, INCAR, run.sh files in current directory
+#: kpgen.py code should be in your script repository
+
+Dim_dict='---Choice :  1:1D | 2:2D | 3:3D  ---'
+echo '-------------------------------------------------------'
+echo $Dim_dict
+echo ' '
+read -p 'Input Dimension Of Your Structure : ' dimension
+echo '-------------------------------------------------------'
+
+ConsideringKPTNumber=50
+
+#Execution kpgen.py
+python /home/parkyj6767/SCRIPTS_PLUS/kpgen.py $ConsideringKPTNumber $dimension
+kpt=`python /home/parkyj6767/SCRIPTS_PLUS/kpgen.py $ConsideringKPTNumber $dimension | tail -n $ConsideringKPTNumber | awk '{print $2 " "  $3 " "  $4 " " $5}'` 
+modified_kpt=`echo $kpt | cut -b2- | awk -F":" '{print $0}'`
+
+#Read user's innput
+read -p 'Initial KPT(num) : ' initial
+read -p 'End KPT(num) : ' end
+
+#KPOINTS Setting
+for i in `seq "$initial" 1 "$end"`
+do
+selected_kpt=`echo $modified_kpt | awk -F":" '{print $'"$i"'}' | awk '{print "   " $1 "  " $2 "  " $3}'`
+pastenumbers=`echo $selected_kpt | tr -d ' '`
+sed -i "4s/.*/$selected_kpt/" ./KPOINTS
+iteration=`expr $i - $initial + 1`
+mkdir $iteration.kpt_$pastenumbers
+cp POSCAR KPOINTS POTCAR INCAR run.sh $iteration.kpt_$pastenumbers
+
+echo $iteration.kpt_$pastenumbers written!!
+
+done
+
+#Number of Fields
+#awk -F":" '{ print NF }'
+
+#vaspkit -task 102 -kpr 0.03
+
+exit 0

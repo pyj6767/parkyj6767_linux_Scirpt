@@ -1,0 +1,37 @@
+#!/bin/sh
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+if [ $# -lt 2 ];then
+echo "----------------------------------------"
+echo "No Arguments : copy all files from Current Directoys"
+echo "----------------------------------------"
+forgrep=$(echo 1 `whoami`)
+allarg=`ls -l $(pwd) | grep "$forgrep" | awk '{print $9}'`
+echo 'Copy list : ' $allarg
+echo '-----------------------------------------------------'
+read -p 'Sure ? (if Not, Press Ctrl+C) : ' answer
+
+num_of_arg=`echo $allarg | wc -w`
+
+
+else
+num_of_arg=`echo $@ | wc -w`
+allarg=`echo $@`
+
+fi
+
+#Extract INCAR tag Line
+#-------------------------------------------------------------------------------------
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+for j in $(seq $num_of_arg)
+do
+arg=`echo $allarg | awk '{print $'"$j"'}'`
+cp $arg $(pwd)/$dir_name
+done
+done
+
+exit 0

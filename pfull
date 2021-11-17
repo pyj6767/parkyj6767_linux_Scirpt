@@ -1,0 +1,66 @@
+#!/bin/sh
+#Parallel qfull Code
+#Description
+#: Parallel qfull Code 
+#Condition : There must be at least 1 work directory in current address
+#Inspired by qfull Code
+
+if [ $# == 0 ];then
+echo "----------------------------------------"
+echo "No Arguments : Start User Interface Mode"
+echo "----------------------------------------"
+read -p "Input Number of Nodes : " nnode
+
+else
+nnode=$1
+fi
+
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+if [ $nnode -eq $nnode 2>/dev/null ];then
+    num=$nnode
+    shift
+    node=""
+fi
+
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+
+if [[ $node == "" ]];then
+    sed -i -e '/#PBS -q/c\#PBS -q full' -e "/nodes/c\#PBS -l nodes=${num}:ppn=32:full" $(pwd)/$dir_name/run.sh
+    echo "./$dir_name : " "nodes=${num}:ppn=32:full"
+else
+    echo "You should check appropriate nodes to corresponding with queue."
+    if [[ $node =~ - ]];then
+        initial=`echo $node|cut -d'-' -f1|cut -d'n' -f2`
+        final=`echo $node|cut -d'-' -f2|cut -d'n' -f2`
+        nodes=`awk -v i=$initial -v f=$final '
+               BEGIN{
+                  for(n=i;n<f;n++){
+                     printf("n%03d:ppn=32:full+",n)
+                  }
+                  printf("n%03d:ppn=32:full",f)
+               }'`
+        echo "set nodes=$nodes"
+    else
+        nodes=""
+        for x in $node
+        do
+            if [[ $nodes == "" ]];then
+                nodes=`printf "%s" "${x}:ppn=32:full"`
+            else
+                nodes=`printf "%s%s" "$nodes" "+${x}:ppn=32:full"`
+            fi
+        done
+    echo "./$dir_name : " "nodes=${num}:ppn=32:full"
+    fi
+    sed -i -e '/#PBS -q/c\#PBS -q full' -e "/nodes/c\#PBS -l nodes=${nodes}" $(pwd)/$dir_name/run.sh
+fi
+
+done
+
+exit 0
+

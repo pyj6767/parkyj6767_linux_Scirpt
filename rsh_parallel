@@ -1,0 +1,14 @@
+#!/bin/sh
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+read -p "1) atom | 2) full : " Choice
+
+
+if [[ $Choice == "1" ]];
+then
+
+for i in $(seq $num_of_dirs)
+do
+qqatom 

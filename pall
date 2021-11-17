@@ -1,0 +1,45 @@
+#!/bin/sh
+
+echo '---------------'
+echo '1) full'
+echo '2) fullgen2'
+echo '---------------'
+read -p 'Select Queue : ' queue
+read -p 'Enther number of nodes : ' non
+kparvalue=`expr $non \* 2`
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+if [ $queue == 1 ];then
+sh patom $non > /dev/null
+sh pincar ncore 16 > /dev/null
+sh pincar kpar $kparvalue > /dev/null
+
+elif [ $queue == 2 ];then
+sh pfull $non > /dev/null
+sh pincar ncore 20 > /dev/null
+sh pincar kpar $kparvalue > /dev/null
+
+echo "======================================================================="
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+echo "Directory : " $dir_name
+#ncorelinenumber=`grep -n NCORE $dir_name/INCAR | awk '{if( $2 == "NCORE" ){print $1}}' | sed -e 's/\://g'`
+#kparlinenumber=`grep -n KPAR $dir_name/INCAR | awk '{if( $2 == "KPAR" ){print $1}}' | sed -e 's/\://g'`
+#sed -n ''"$ncorelinenumber"','"$kparlinenumber"'p' $dir_name/INCAR
+echo '----------run.sh file----------'
+cat $dir_name/run.sh | grep "PBS \-q\|PBS \-l"
+echo "----------INCAR file----------"
+cat $dir_name/INCAR | grep "NCORE\|KPAR\|NPAR" | cut -d"|" -f1
+
+echo "======================================================================="
+done
+
+else
+echo 'Your Input has problem.'
+fi
+
+exit 0
+

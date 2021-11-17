@@ -1,0 +1,206 @@
+#!/usr/bin/env python
+#Scripte Name : DFE_Plot | Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: For DFE Plot (Poor User interface Script)
+
+import numpy as np 
+import matplotlib.pyplot as plt
+plt.cla()
+plt.clf()
+error='off'
+
+#★★★User Setting★★★
+#======================================================================================================
+#======================================================================================================
+bulk_Ga=-2.90916
+bulk_N=-8.32987
+bulk_vbm=2.542
+bulk_supercell_TOTEN=-194.735
+bulk_TOTEN_per_fu=-24.3418/2
+
+bulk_supercell_TOTEN=bulk_TOTEN_per_fu*48
+#======================================================================================================
+#======================================================================================================
+Ga_cp_Ga_rich=bulk_Ga
+N_cp_N_rich=bulk_N
+Ga_cp_N_rich=((bulk_TOTEN_per_fu)-(N_cp_N_rich)*1)/1
+N_cp_Ga_rich=((bulk_TOTEN_per_fu)-(Ga_cp_Ga_rich)*1)/1
+cp={1:Ga_cp_Ga_rich, 2:N_cp_N_rich, 3:Ga_cp_N_rich, 4:N_cp_Ga_rich}
+
+#★★★User Setting2★★★
+#======================================================================================================
+#======================================================================================================
+#Note : only_solid_plot, sd_plot <-> min_value_plot must have different state(on/off)
+only_solid_plot='off' #Only Single Plot
+min_value_plot='on' #Only Multiple Plot
+sd_plot='off' #Only Single Plot
+Ef=np.linspace(0, 3.4, 1000)
+#======================================================================================================
+#======================================================================================================
+
+#Single Defect Plot
+#=============================================================================================================
+if ( only_solid_plot=='on' or sd_plot=='on' ) and min_value_plot!='on':
+    # ★★★User Setting3★★★
+    #=========================================================================================================
+    labellist=['V_Ga(-3)', 'V_Ga(-2)', 'V_Ga(-1)', 'V_Ga(0)', 'V_Ga(+1)', 'V_Ga(+2)', 'V_Ga(+3)']
+    #labellist=['V_N(-3)', 'V_N(-2)', 'V_N(-1)', 'V_N(0)', 'V_N(+1)', 'V_N(+2)', 'V_N(+3)']
+    colors=['b','g','r','c', 'm', 'y', 'k']
+    dfe_charge=[-3, -2, -1, 0, 1, 2, 3]
+    TOTEN_per_fu=[-175.754, -179.338, -182.44, -184.9, -186.851, -188.612, -190.216]
+    chemical_potential=cp[1]
+    #TOTEN_per_fu=[-171.564, -178.480, -183.203, -189.422, -195.237, -200.175, -204.717]
+    #chemical_potential=-cp[1]
+    #=========================================================================================================
+
+#Multi Defect Plot
+#------------------------------
+elif only_solid_plot!='on' and sd_plot!='on' and min_value_plot=='on':
+    #★★★User Setting3★★★
+    #=========================================================================================================
+    m_labellist=['V_Ga', 'V_N','Ga_i','N_i']
+    colors=['b','g','r','c']
+    chemical_potential=[cp[1],cp[4],-cp[1],-cp[4]]
+    #chemical_potential=[cp[3],cp[4],cp[3],cp[4]]
+    #Note : If you add additional Defect Data, Variable Name name must be TOTEN_per_fu1, TOTEN_per_fu2, TOTEN_per_fu3, ...
+    TOTEN_per_fu1=[-564.6217, -568.0557, -571.2130, -574.1303, -576.4793, -578.7473, -580.9466]
+    dfe_charge1=[-3, -2, -1, 0, 1, 2, 3]
+    correction1=[0, 0, 0, 0, 0, 0, 0]
+    TOTEN_per_fu2=[-557.4949, -562.7372, -567.6848, -572.3228, -577.0402, -579.7081, -582.8883]
+    dfe_charge2=[-3, -2, -1, 0, 1, 2, 3]
+    correction2=[0, 0, 0, 0, 0, 0, 0]
+    #TOTEN_per_fu3=[-171.564, -178.480, -183.203, -189.422, -195.237, -200.175, -204.717]
+    #dfe_charge3=[-3, -2, -1, 0, 1, 2, 3]
+    TOTEN_per_fu3=[-579.6100, -584.8810, -589.4400, -593.8920]
+    dfe_charge3=[0, 1, 2, 3]
+    correction3=[0, 0, 0, 0]
+    TOTEN_per_fu4=[-581.3012, -585.2736, -592.1777, -595.2528, -595.9303]
+    dfe_charge4=[-1, 0, 1, 2, 3]
+    correction4=[0, 0, 0, 0, 0]
+    #=========================================================================================================
+
+    TOTEN_per_fu=[]
+    dfe_charge=[]
+    correction=[]
+    for i in range(1,len(m_labellist)+1):
+        string='TOTEN_per_fu'+str(i)
+        string2='dfe_charge'+str(i)
+        string3='correction'+str(i)
+        TOTEN_per_fu.append(globals()[string])
+        dfe_charge.append(globals()[string2])
+        correction.append(globals()[string3])
+    
+else:
+    print('only_solid_plot, sd_plot <-> min_value_plot must have different state(on/off)')
+    error='on'
+
+#=============================================================================================================
+
+def Only_Solid(dfe_charge, TOTEN_per_fu, bulk_supercell_TOTEN, chemical_potential, Ef, bulk_vbm, correction):
+    DFE_list=[]
+    for i in range(len(dfe_charge)):
+        DFE=TOTEN_per_fu[i]-bulk_supercell_TOTEN+chemical_potential+dfe_charge[i]*(Ef+bulk_vbm)+correction[i]
+        DFE_list.append(DFE)
+        
+    return DFE_list
+
+def Minvalue(dfe_charge, TOTEN_per_fu, bulk_supercell_TOTEN, chemical_potential, Ef, bulk_vbm, correction):
+    DFE_list=Only_Solid(dfe_charge, TOTEN_per_fu, bulk_supercell_TOTEN, chemical_potential, Ef, bulk_vbm, correction)
+    DFE_list_T=np.array(DFE_list)
+    DFE_list_T=np.transpose(DFE_list)
+    y_list=[]
+    y_index_list=[]
+    for k in range(len(Ef)):
+        y=min(DFE_list_T[k])
+        y_index=list(DFE_list_T[k]).index(y)
+        y_index_list.append(y_index)
+        y_list.append(y)
+    return y_list, y_index_list
+
+def sdvalue(dfe_charge, TOTEN_per_fu, bulk_supercell_TOTEN, chemical_potential, Ef, bulk_vbm, correction):
+    DFE_list=Only_Solid(dfe_charge, TOTEN_per_fu, bulk_supercell_TOTEN, chemical_potential, Ef, bulk_vbm, correction)
+    DFE_list_T=np.array(DFE_list)
+    DFE_list_T=np.transpose(DFE_list)
+    y_list, y_index_list=Minvalue(dfe_charge, TOTEN_per_fu, bulk_supercell_TOTEN, chemical_potential, Ef, bulk_vbm, correction)
+    
+    set_y_index_list=[y_index_list[i] for i in range(len(y_index_list)) if y_index_list[i]!=y_index_list[i-1]]
+    plot_end_list=[]
+    plot_initial_list=[]
+
+    for p in range(len(Ef)):
+        if p==0:
+            plot_initial_list.append(p)
+        elif y_index_list[p-1]!=y_index_list[p] or p==len(Ef)-1:
+            plot_end_list.append(p-1)
+            plot_initial_list.append(p)
+
+    plot_initial_list.pop()
+    
+    return plot_initial_list, plot_end_list, set_y_index_list, DFE_list
+
+
+### There is 3 Options ###
+##############################################################################################################
+#=============================================================================================================
+
+#Only Solid Line Plot
+#=============================================================================================================
+if only_solid_plot=='on' and error=='off':
+    DFE_list=Only_Solid(dfe_charge, TOTEN_per_fu, bulk_supercell_TOTEN, chemical_potential, Ef, bulk_vbm, correction)
+    for j in range(len(dfe_charge)):
+        plt.plot(Ef, DFE_list[j])
+    plt.legend()
+    plt.axis('tight')
+    plt.xlabel('Fermi Energy(eV)')
+    plt.ylabel('Defect Formation Energy(eV)')
+    plt.show()
+#=============================================================================================================
+
+
+#Only Minimum Value Plot
+#=============================================================================================================
+if min_value_plot=='on' and error=='off':
+    DFE_list=[]
+    for i in range(len(TOTEN_per_fu)):
+        #print(correction[i])
+        [y_list, y_index_list]=Minvalue(dfe_charge[i], TOTEN_per_fu[i], bulk_supercell_TOTEN, chemical_potential[i], Ef, bulk_vbm, correction[i])
+        DFE_list.append(y_list)
+    for i in range(len(TOTEN_per_fu)):
+        plt.plot(Ef,DFE_list[i],label=m_labellist[i],color=colors[i])
+        plt.legend()
+        plt.axis('tight')
+        plt.xlabel('Fermi Energy(eV)')
+        plt.ylabel('Defect Formation Energy(eV)')
+    plt.show()
+#=============================================================================================================
+
+#Solid Line + Dotted Line Plot
+#=============================================================================================================
+if sd_plot=='on' and error=='off':
+    [plot_initial_list, plot_end_list, set_y_index_list, DFE_list]=sdvalue(dfe_charge, TOTEN_per_fu, bulk_supercell_TOTEN, chemical_potential, Ef, bulk_vbm, correction)
+    for m in range(len(plot_initial_list)):
+        ii=set_y_index_list[m]
+
+        solid_x=Ef[plot_initial_list[m]:plot_end_list[m]]
+        solid_y=DFE_list[ii][plot_initial_list[m]:plot_end_list[m]]
+
+        dx1=Ef[0:plot_initial_list[m]].tolist()
+        dx2=Ef[plot_end_list[m]:].tolist()
+        dy1=DFE_list[ii][0:plot_initial_list[m]].tolist()
+        dy2=DFE_list[ii][plot_end_list[m]:].tolist()
+
+        dotted_x=dx1+dx2
+        dotted_y=dy1+dy2
+
+        plt.plot(solid_x, solid_y, label=labellist[set_y_index_list[m]],color=colors[m])
+        plt.plot(dotted_x, dotted_y, linestyle='--',color=colors[m])
+        plt.legend()
+        plt.axis([-1.5, 2.0, 0, 10])
+        plt.xlabel('Fermi Energy(eV)')
+        plt.ylabel('Defect Formation Energy(eV)')
+
+    plt.show()
+#=============================================================================================================
+
+##############################################################################################################
+##############################################################################################################

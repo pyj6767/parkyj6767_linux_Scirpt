@@ -1,0 +1,18 @@
+#!/bin/sh
+
+modir=$(pwd)
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+cd $modir/$dir_name
+rm PROCAR
+rm CHG
+rm WAVECAR
+#rm WAVECAR CHG
+rm vasprun.xml 
+done
+
+exit 0

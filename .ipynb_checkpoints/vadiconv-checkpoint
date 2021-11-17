@@ -1,0 +1,69 @@
+#!/bin/sh
+
+modir=$(pwd)
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+#Read Input
+echo '-------------------------------------------------'
+read -p 'Input vacuum_distance Initial (Default : 10): ' initial
+read -p 'Input vacuum_distance Increment (Default : 2): ' increment
+
+
+#default value setting($initial)
+if [[ $initial -lt 1 ]] || [[ $initial == $String22 ]]
+then
+initial=10
+fi
+#Default Value Setting($increment)
+if [[ $increment -lt 1 ]] || [[ $increment == $String22 ]]
+then
+increment=2
+fi
+
+#For User, Check Input
+echo '-------------------------------------------------'
+echo "Initial Vacuum Distance = $initial" " || Increment = $increment "
+echo '-------------------------------------------------'
+
+#total 15 Vacuum Distance Generation
+end=`expr $initial + $increment \* 15`
+index=0
+echo "----------Choose End Value of Vacuum Distance----------"
+for i in `seq "$initial" "$increment" "$end"`
+do
+index=`expr $index + 1`
+echo $index : Vaccum_distance = $i
+alldistance=`echo $alldistance $i`
+done
+
+echo '--------------------------------------------------'
+read -p 'Input vacuum_distance End (Default : 5): ' enddistance
+
+#Default Value Setting($endencut)
+if [[ $enddistance -lt 1 ]] || [[ $enddistance == $String22 ]]
+then
+enddistance=8
+fi
+
+#Index to Real Value(redirection)
+enddistance=`echo $alldistance | awk '{print $'"$enddistance"'}'`
+echo 'Your End Value of ENCUT =' $enddistance
+
+for i in `seq "$initial" "$increment" "$enddistance"`
+do
+
+#vacuum_distance
+vacuum_distance 3 1 $i
+
+#filename setting
+iteration=`expr $iteration + 1`
+mkdir $iteration.vacuum_$i
+cp POSCAR KPOINTS POTCAR INCAR run.sh $iteration.vacuum_$i
+echo $iteration.vacuum_$i written!!
+done
+
+exit 0
+
+
+#-------------------------------------------------------------------------------------

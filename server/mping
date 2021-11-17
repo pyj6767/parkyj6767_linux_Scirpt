@@ -1,0 +1,36 @@
+#!/bin/sh
+#Script Name : mping(Manager Ping) | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Discription
+#: All Node ping test (Recommand! pings/node = 1)
+
+### inspired by Kyung-Yeon Doh's jobaddress code
+### 2021/07/12
+### Young-Jun Park
+
+read -p "Enter the number of pings per node(pings/node) : " np
+#echo "If you want to stop the process, Enter the \"Ctrl+z\" !!! (Not \"Ctrl + c\")"
+
+ping_node=`pestat | awk '{if( $1 != "node" ){printf($1);printf(" ")}}'`
+
+#ping_node=`echo $ping_node|awk '{for(i=32;i<=NF;i++)printf("%s ",$i);printf("\n")}'`
+
+echo "-------------------"
+echo '    Node name     :  ping value[min/avg/max/mdev] (ms)'
+echo "=================== : ==================================="
+
+for i in ${ping_node[@]}
+do
+ping -c $np -W 1 "$i" | awk ' 
+BEGIN{button=0}
+{
+   if( $1 == "PING" ){printf("%10s  :  ",$2)}
+   if( $2 == "packets" && $4 == "0" ){printf("  There is no Received Ping");printf("\n")}
+   else if( $1 == "rtt" ){button=1;printf("   %s ",$4);printf("\n")}
+   else if( $1 == "rtt" ){button=0;printf("\n")}
+}'
+
+done
+
+
+
+exit 0

@@ -1,0 +1,29 @@
+#!/bin/sh
+#Script Name : copydir | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: Create working directories with current input files
+
+if [ $#  -lt 2 ]; then
+        echo "copydir [dir name] [number of dir]"
+        exit 0
+fi
+
+echo "New Arguments : $1"
+
+for i in $(seq $2)
+do
+len=`echo $i | wc -L`
+
+if [ $len == "1" ];then
+mkdir 0$i.$1
+cp POSCAR KPOINTS POTCAR INCAR run.sh 0$i.$1/
+
+else
+mkdir $i.$1
+cp POSCAR KPOINTS POTCAR INCAR run.sh $i.$1/
+
+fi
+
+done
+
+exit 0

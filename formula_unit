@@ -1,0 +1,42 @@
+#!/usr/bin/env python3.9
+
+import sys
+import os
+from math import gcd
+
+if len(sys.argv) == 2:
+    address=sys.argv[1]
+    
+pwd=os.getcwd()
+ps=pwd.split('/')
+ps.reverse()
+
+
+file_path_list=[]
+for filename in os.listdir(pwd):
+    file_path=os.path.join(pwd,filename)
+    if os.path.isdir(file_path):
+        file_path_list.append(file_path)
+
+POSCARfile = open(address+'/POSCAR','r')
+
+linedata=POSCARfile.readlines()
+linedata=linedata[6]
+linedata=linedata.replace('\n','').replace('\r','').split(' ')
+linedata=[k for k in linedata if k != '']
+linedata1=[int(i) for i in linedata]
+linedata2=[int(i) for i in linedata]
+
+def gcdsolution(arr):
+    if len(arr)==1:
+        return arr[0]
+    while True:
+        arr.append(gcd(arr.pop(),arr.pop()))
+        if len(arr) == 1:
+            return arr[0]
+            
+gcd_result=gcdsolution(linedata1)
+
+total_result=gcd_result
+    
+print(total_result)

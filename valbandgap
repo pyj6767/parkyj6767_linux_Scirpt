@@ -1,0 +1,225 @@
+#!/usr/bin/env python3.9
+#Script Name : valbandgap(valence electron bandgap) | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: Band Gap Calculation by Using EIGENVAL, OUTCAR File (inspired by Jin-Chul Kim)
+#: Using Number of Valence Electron
+
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+
+#Extract NELECT, NKPTS, ISPIN from OUTCAR
+#=============================================================================================================
+def returnOUTCAR():
+    o=open('OUTCAR')
+    outcar=o.readlines()
+
+    for i in range(7,len(outcar)):
+        if len(outcar[i].split())>=3:
+            if outcar[i].split()[0]=='NELECT':
+                nelect=float(outcar[i].split()[2])
+
+            if outcar[i].split()[1]=='NKPTS':
+                nkpts=float(outcar[i].split()[3])
+
+            if outcar[i].split()[0]=='ISPIN':
+                ISPIN=int(outcar[i].split()[2])
+
+    return nelect, nkpts, ISPIN
+#=============================================================================================================
+
+#Construct Band Structure Array from EIGENVAL
+#=============================================================================================================
+def returnBAND(nelect,nkpts,ISPIN):
+    e=open('EIGENVAL')
+    eigen=e.readlines()
+
+    #returnBAND For ISPIN = 2
+    #=========================================================================================================
+    if ISPIN==2:
+        Upband=[]
+        Downband=[]
+        Upbandocc=[]
+        Downbandocc=[]
+        KPT=[]
+
+        for i in range(7,len(eigen)):
+            temp=eigen[i].split()
+
+            if len(temp) == 4:
+                Up_i=[]
+                Down_i=[]
+                Up_i_occ=[]
+                Down_i_occ=[]
+                KPT.append([float(temp[0]),float(temp[1]),float(temp[2])])
+
+            elif len(temp) == 5:
+                Up_i.append(float(temp[1]))
+                Down_i.append(float(temp[2]))
+                Up_i_occ.append(float(temp[3]))
+                Down_i_occ.append(float(temp[4]))
+            elif len(temp) == 0:
+                Upband.append(Up_i)
+                Downband.append(Down_i)
+                Upbandocc.append(Up_i_occ)
+                Downbandocc.append(Down_i_occ)
+            
+        Upband.append(Up_i)
+        Downband.append(Down_i)
+        Upbandocc.append(Up_i_occ)
+        Downbandocc.append(Down_i_occ)
+
+        Upband=np.asarray(Upband)
+        Downband=np.asarray(Downband)
+        Upbandocc=np.asarray(Upbandocc)
+        Downbandocc=np.asarray(Downbandocc)
+
+        Upband=np.matrix.transpose(Upband)
+        Downband=np.matrix.transpose(Downband)
+        Upbandocc=np.matrix.transpose(Upbandocc)
+        Downbandocc=np.matrix.transpose(Downbandocc)
+
+        nelect=nelect/2 #For ISPIN=2
+        vbmbandnumber=int(nelect-1)
+        cbmbandnumber=int(nelect)
+
+        vbm1=max(Upband[vbmbandnumber])
+        vbm2=max(Downband[vbmbandnumber])
+        cbm1=min(Upband[cbmbandnumber])
+        cbm2=min(Downband[cbmbandnumber])
+        vbm=max(vbm1,vbm2)
+        cbm=max(cbm1,cbm2)
+        bandgap=cbm-vbm
+        
+        if bandgap < 0:
+            bandgap = 0
+
+        vbm1kptindex=[]
+        cbm1kptindex=[]
+        vbm2kptindex=[]
+        cbm2kptindex=[]
+
+        for i in range(len(Upband[vbmbandnumber])):
+            if Upband[vbmbandnumber][i]==vbm:
+                vbm1kptindex.append(i)
+            if Downband[vbmbandnumber][i]==vbm:
+                vbm2kptindex.append(i)
+
+        for i in range(len(Upband[cbmbandnumber])):
+            if Upband[cbmbandnumber][i]==cbm:
+                cbm1kptindex.append(i)
+            if Downband[cbmbandnumber][i]==cbm:
+                cbm2kptindex.append(i)
+
+        return(Upband,Downband,Upbandocc,Downbandocc,vbm,cbm,bandgap,vbm1kptindex,vbm2kptindex,cbm1kptindex,cbm2kptindex,KPT)
+
+    #=========================================================================================================
+
+    #returnBAND For ISPIN = 1
+    #=========================================================================================================
+    elif ISPIN==1:
+        Upband=[]
+        Upbandocc=[]
+        KPT=[]
+
+        for i in range(7,len(eigen)):
+            temp=eigen[i].split()
+
+            if len(temp) == 4:
+                Up_i=[]
+                Up_i_occ=[]
+                KPT.append([float(temp[0]),float(temp[1]),float(temp[2])])
+            elif len(temp) == 3:
+                Up_i.append(float(temp[1]))
+                Up_i_occ.append(float(temp[2]))
+            elif len(temp) == 0:
+                Upband.append(Up_i)
+                Upband.append(Up_i)
+                Upbandocc.append(Up_i_occ)
+            
+        Upband.append(Up_i)
+        Upband.append(Up_i)
+        Upbandocc.append(Up_i_occ)
+
+        Upband=np.asarray(Upband)
+        Upbandocc=np.asarray(Upbandocc)
+
+        Upband=np.matrix.transpose(Upband)
+        Upbandocc=np.matrix.transpose(Upbandocc)
+
+        vbmbandnumber=int(nelect-1)
+        cbmbandnumber=int(nelect)
+
+        vbm=max(Upband[vbmbandnumber])
+        cbm=min(Upband[cbmbandnumber])
+        bandgap=cbm-vbm
+
+        if bandgap < 0:
+            bandgap=0
+
+        vbm1kptindex=[]
+        cbm1kptindex=[]
+        for i in range(len(Upband[vbmbandnumber])):
+            if Upband[vbmbandnumber][i]==vbm:
+                vbm1kptindex.append(i)
+
+        for i in range(len(Upband[cbmbandnumber])):
+            if Upband[cbmbandnumber][i]==cbm:
+                cbm1kptindex.append(i)
+
+        return(Upband,Upbandocc,vbm,cbm,bandgap,vbm1kptindex,cbm1kptindex,KPT) #return
+    #=========================================================================================================
+
+nelect,nkpts,ISPIN=returnOUTCAR()
+if ISPIN==2:
+    Upband, Downband, Upbandocc, Downbandocc, vbm, cbm, bandgap, vbm1kptindex, vbm2kptindex, cbm1kptindex, cbm2kptindex, KPT = returnBAND(nelect,nkpts,ISPIN)
+elif ISPIN==1:
+    Upband, Upbandocc, vbm, cbm, bandgap, vbm1kptindex, cbm1kptindex, KPT = returnBAND(nelect,nkpts,ISPIN)
+
+vbmkptlist=[]
+cbmkptlist=[]
+
+if ISPIN==2:
+    if len(vbm1kptindex)!=0:
+        for i in range(len(vbm1kptindex)):
+            vbmkptlist.append(['Up-spin_Band', KPT[vbm1kptindex[i]]])
+    if len(vbm2kptindex)!=0:
+        for i in range(len(vbm2kptindex)):
+            vbmkptlist.append(['Down-spin_Band', KPT[vbm2kptindex[i]]])
+    if len(cbm1kptindex)!=0:
+        for i in range(len(cbm1kptindex)):
+            cbmkptlist.append(['Up-spin_Band', KPT[cbm1kptindex[i]]])
+    if len(cbm2kptindex)!=0:
+        for i in range(len(cbm2kptindex)):
+            cbmkptlist.append(['Down-spin_Band', KPT[cbm2kptindex[i]]])
+
+elif ISPIN==1:
+    if len(vbm1kptindex)!=0:
+        for i in range(len(vbm1kptindex)):
+            print(1)
+            vbmkptlist.append(['Up-spin_Band', KPT[vbm1kptindex[i]]])
+    if len(cbm1kptindex)!=0:
+        for i in range(len(cbm1kptindex)):
+            print(3)
+            cbmkptlist.append(['Up-spin_Band', KPT[cbm1kptindex[i]]])
+
+print('')
+print('============================================valbandgap================================================')
+print('Energy List respect to BAND-GAP & vbm & cbm')
+print('------------------------------------------------------------------------------------------------------')
+print('Bandgap : ', bandgap)
+print('CBM-Energy : ', cbm)
+print('VBM-Energy : ', vbm)
+print('======================================================================================================')
+
+print('K-Points List respect to CBM')
+print('------------------------------------------------------------------------------------------------------')
+for i in range(len(cbmkptlist)):
+    print('CBM_KPOINTS : {} {} {} {}'.format(cbmkptlist[i][0],cbmkptlist[i][1][0],cbmkptlist[i][1][1],cbmkptlist[i][1][2]))
+
+print('======================================================================================================')
+print('K-Points List respect to VBM')
+print('------------------------------------------------------------------------------------------------------')
+for i in range(len(vbmkptlist)):
+    print('VBM_KPOINTS : {} {} {} {}'.format(vbmkptlist[i][0],vbmkptlist[i][1][0],vbmkptlist[i][1][1],vbmkptlist[i][1][2]))
+print('======================================================================================================')

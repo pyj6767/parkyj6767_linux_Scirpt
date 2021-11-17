@@ -1,0 +1,49 @@
+#!/bin/sh
+#Script Name : pjobname | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+
+# This Script may replace to systemname script
+
+#: Change Job Name to Directory Name + INCAR & KPOINTS system name to POSCAR Name
+#: Suggest!! : Before using this script, please use the "systemname" or "psystemname" script first.
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+job_name=`echo $dir_name | awk -F'/' '{print $NF}'`
+#if [[ $job_name == "\d.*" ]] || [[ $job_name == "\d.*" ]]
+#then
+echo $job_name
+change=`echo $job_name | awk -F'.' '{print $NF}'`
+system=`sed -n 1p $(pwd)/$dir_name/POSCAR`
+echo $system
+#echo $change
+
+
+#fi
+
+if [ -e $dir_name/run.sh ]; then
+sed -i '/PBS \-N/c\#PBS \-N '"$system"'' $(pwd)/$dir_name/run.sh
+perl -pi -e 's/\r//' $(pwd)/$dir_name/run.sh
+#tr -d '^M' 
+fi
+
+#if [ -e $dir_name/INCAR ]; then
+#sed -i '1s/.*/SYSTEM      = '"$system"'/' $(pwd)/$dir_name/INCAR
+#perl -pi -e 's/\r//' $(pwd)/$dir_name/run.sh
+#fi
+
+#if [ -e $dir_name/KPOINTS ]; then
+#sed -i '1s/.*/'"$system"'/' $(pwd)/$dir_name/KPOINTS
+#perl -pi -e 's/\r//' $(pwd)/$dir_name/run.sh
+#fi
+
+perl -pi -e 's/\r//' $(pwd)/$dir_name/POSCAR
+perl -pi -e 's/\r//' $(pwd)/$dir_name/INCAR
+perl -pi -e 's/\r//' $(pwd)/$dir_name/KPOINTS
+
+done
+

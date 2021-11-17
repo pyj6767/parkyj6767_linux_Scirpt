@@ -1,0 +1,144 @@
+#!/bin/sh
+#Script Name : pjobsystemname (Parallel Job & System Name) | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Description
+#: Change Job Name to Directory Name + INCAR & KPOINTS system name to POSCAR Name
+#: Suggest!! : Before using this script, please use the "systemname" or "psystemname" script first.
+
+echo '==========================Systemname=========================='
+echo ' '
+echo ': Change a system name in INCAR, POSCAR, KPOINTS, run.sh files'
+echo ' '
+echo '=============================================================='
+
+read -p 'Single Work(1) / Parallel Work(2) / Only Jobname Change based POSCAR system name, Parallel(3) : ' work
+
+#Single Work
+#============================================================
+if [[ $work == '1' ]];then
+
+read -p 'Input System Name : ' system
+
+#System Name Change
+sed -i '1s/.*/SYSTEM      = '"$system"'/' INCAR
+sed -i '1s/.*/'"$system"'/' KPOINTS
+sed -i '1s/.*/'"$system"'/' POSCAR
+sed -i '/PBS \-N/c\#PBS \-N '"$system"'' run.sh
+
+#^M Character Remove
+perl -pi -e 's/\r//' INCAR
+perl -pi -e 's/\r//' KPOINTS
+perl -pi -e 's/\r//' POSCAR
+perl -pi -e 's/\r//' run.sh
+
+echo '---------------------------------------'
+echo '=================INCAR================='
+head -1 INCAR
+echo ' '
+
+echo '================KPOINTS================'
+head -1 KPOINTS
+echo ' '
+
+echo '================POSCAR================='
+head -1 POSCAR
+echo ' '
+
+echo '================run.sh================='
+grep "PBS -N" run.sh
+echo ' '
+
+echo '----------------------------------------'
+
+#===========================================================
+
+#Parallel Work
+#===========================================================
+elif [[ $work == '2' ]];then
+
+read -p 'Input System Name : ' system
+
+#iteration
+#---------------------------------------------------------------
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+
+jobname=`echo $system'_'$dir_name | tr -d ' '`
+
+#System Name Change
+sed -i '1s/.*/SYSTEM      = '"$system"'/' $(pwd)/$dir_name/INCAR
+sed -i '1s/.*/'"$system"'/' $(pwd)/$dir_name/KPOINTS
+sed -i '1s/.*/'"$system"'/' $(pwd)/$dir_name/POSCAR
+sed -i '/PBS \-N/c\#PBS \-N '"$jobname"'' $(pwd)/$dir_name/run.sh
+
+echo $jobname
+
+#^M Character Remove
+perl -pi -e 's/\r//' $(pwd)/$dir_name/INCAR
+perl -pi -e 's/\r//' $(pwd)/$dir_name/KPOINTS
+perl -pi -e 's/\r//' $(pwd)/$dir_name/POSCAR
+perl -pi -e 's/\r//' $(pwd)/$dir_name/run.sh
+
+
+echo '------------------------------------------------------------------------------------'
+echo '============================directory :' $dir_name '==========================='
+echo ' '
+
+echo '=================INCAR================='
+head -1 $(pwd)/$dir_name/INCAR
+
+echo '================KPOINTS================'
+head -1 $(pwd)/$dir_name/KPOINTS
+
+echo '================POSCAR================='
+head -1 $(pwd)/$dir_name/POSCAR
+
+echo '================run.sh================='
+grep "PBS -N" $(pwd)/$dir_name/run.sh
+
+echo '-------------------------------------------------------------------------------------'
+echo ' '
+
+done
+
+#===========================================================
+
+
+#Only Job Name
+#===========================================================
+elif [[ $work == '3' ]];then
+
+directorys=`ls -l $(pwd) | grep "^d" | awk '{print $9}'`
+num_of_dirs=`echo $directorys | wc -w`
+
+#iteration
+for i in $(seq $num_of_dirs)
+do
+dir_name=`echo $directorys | awk '{print $'"$i"'}'`
+system=`sed -n 1p $(pwd)/$dir_name/POSCAR`
+jobname=`echo $system'_'$dir_name | tr -d ' '`
+#System Name Change
+sed -i '/PBS \-N/c\#PBS \-N '"$jobname"'' $(pwd)/$dir_name/run.sh
+#^M Character Remove
+perl -pi -e 's/\r//' $(pwd)/$dir_name/run.sh
+
+echo '============================directory :' $dir_name '==========================='
+
+echo '--------------run.sh-----------------'
+grep "PBS -N" $(pwd)/$dir_name/run.sh
+echo '-------------------------------------------------------------------------------------'
+
+
+done
+#===========================================================
+
+else
+echo 'Input Error!!'
+exit 0
+
+fi
+
+exit 0

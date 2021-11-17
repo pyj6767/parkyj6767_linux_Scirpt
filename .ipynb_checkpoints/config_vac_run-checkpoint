@@ -1,0 +1,218 @@
+#!/bin/bash
+#PBS -N CONFIG_SCRIPT_TEST
+#PBS -q full
+#PBS -l nodes=4:ppn=32:full
+
+
+
+###############################SETTING value################################
+vaclist='Sr1 Sr5'
+configlist='O1 O2 O10'
+calculation_name='RELAX'
+configuration_name='CONFIG'
+#description
+
+# vaclist='O114'
+# configlist='O12 O15 O30 O44'
+
+# if above setting, Pure relax -> vaclist relax -> based on vaclist CONTCAR, calculation configlist one of each
+############################################################################
+
+cd $PBS_O_WORKDIR
+
+#DON'T TOUCH###############################################################
+POS=`grep VRHFIN POTCAR | awk -F"=" '{print $2}' | awk -F":" '{print $1}'`
+total_count=0
+pos_count=0
+one='1'
+config_count=0
+TIME=`date`
+#total_count renewal (do not touch)
+for vac in $vaclist
+do
+if [ -n $vac ];then
+total_count=`expr $total_count + 1`
+fi
+done
+#config_count renewal (do not touch)
+for config in $configlist
+do
+if [ -n $config ];then
+config_count=`expr $config_count + 1`
+fi
+done
+######################################
+#pos_count renewal (do not touch)
+for pos in $POS # total count
+do
+if [ -n $pos ];then
+pos_count=`expr $pos_count + 1`
+fi
+done
+######################################
+# vac_number renewal (do not touch)
+for vac in $vaclist
+do
+for i in $(seq $pos_count)
+do
+pos=`echo $POS | awk '{print $'"$i"'}'`
+chk=`echo $vac | grep $pos`
+if [ $chk ];then
+echo $i >> vac_num
+fi
+done
+done
+vacnum=`cat vac_num`
+rm vac_num
+#config_number renewal (do not touch)
+for config in $configlist
+do
+for i in $(seq $pos_count)
+do
+pos=`echo $POS | awk '{print $'"$i"'}'`
+chk=`echo $config | grep $pos`
+if [ $chk ];then
+echo $i >> config_num
+fi
+done
+done
+confignum=`cat config_num`
+rm config_num
+###MKDIR###
+# value check
+echo "========REFERENCE CALCULATION=========" > check
+echo $TIME >> check
+echo "vacancy list:" $vaclist >> check
+echo "vacancy number list:" $vacnum >> check
+echo "total vacancy calculation counts:" $total_count >> check
+echo "number of Elements:" $pos_count >> check
+echo "" >> check
+echo "=======COFIGURATION CALCULATION=======" >> check
+echo "configuration list:" $configlist >> check
+echo "configuration number list:" $confignum >> check
+echo "total configuration calculation counts:" $config_count >> check
+# check : clear
+######################calculation intial###############################
+EXE="/usr/local/VASP/vasp5.4.4vtst-mkl-2019"
+NUMBER=`cat $PBS_NODEFILE | wc -l`
+echo $PBS_JOBID `pwd` '      '   `date` >> ~/a.log/input.log
+mpirun -machinefile $PBS_NODEFILE -np $NUMBER $EXE > relax.out
+mkdir $calculation_name
+wait
+mv relax.out ./$calculation_name/
+mv WAVECAR ./$calculation_name/
+mv PROCAR ./$calculation_name/
+mv CHGCAR ./$calculation_name/
+mv OUTCAR ./$calculation_name/
+cp POSCAR ./$calculation_name/
+cp CONTCAR ./$calculation_name/
+cp POTCAR ./$calculation_name/
+wait
+sleep 2
+#check : clear
+
+# CONTCAR TO POSCAR & POSCAR CHANGE
+for i in $(seq $total_count)
+do
+#CONTCAR TO POSCAR
+CONT_0E=`grep -n 0.00000000E+00 CONTCAR | awk '{print $1}' | awk -F":" '{print $1}' | sed -n '1p'`
+sed ''"$CONT_0E"',$d' CONTCAR > CONT
+wait
+a=`awk '{print $1,$2,$3}' CONT`
+b=`awk '{print $4}' POSCAR`
+echo "$a" > tmp1
+echo "$b" > tmp2
+wait
+sleep 1
+paste -d" " tmp1 tmp2 > POS
+wait
+echo "" >> check
+echo "iteration number: $i" >> check
+mv POS POSCAR
+
+#POSCAR CHANGE
+vac=`echo $vaclist | awk '{print $'"$i"'}'`
+echo "vac:" $vac >> check
+perl -ni -e 'print unless /'"$vac"'\n/' POSCAR
+wait
+input=`echo $vacnum | awk '{print $'"$i"'}'`
+echo "input:" $input >> check
+num=`awk 'NR==7{print $'"$input"'}' POSCAR`
+echo "num:" $num >> check
+num_new=`expr $num - $one`
+echo "num_new:" $num_new >> check
+awk 'NR==7{$'"$input"'="'"$num_new"'"}1' POSCAR > postmp
+wait
+mv postmp POSCAR
+wait
+sleep 2
+
+#RUN
+mpirun -machinefile $PBS_NODEFILE -np $NUMBER $EXE > relax.out
+mkdir $calculation_name-$i
+mv relax.out ./$calculation_name-$i/
+mv WAVECAR ./$calculation_name-$i/
+mv PROCAR ./$calculation_name-$i/
+mv CHGCAR ./$calculation_name-$i/
+mv OUTCAR ./$calculation_name-$i/
+cp POSCAR ./$calculation_name-$i/
+cp CONTCAR ./$calculation_name-$i/
+cp POTCAR ./$calculation_name-$i/
+sleep 2
+done
+
+
+#CONTCAR TO POSCAR
+CONT_0E=`grep -n 0.00000000E+00 CONTCAR | awk '{print $1}' | awk -F":" '{print $1}' | sed -n '1p'`
+sed ''"$CONT_0E"',$d' CONTCAR > CONT
+wait
+a=`awk '{print $1,$2,$3}' CONT`
+b=`awk '{print $4}' POSCAR`
+echo "$a" > tmp1
+echo "$b" > tmp2
+wait
+sleep 1
+paste -d" " tmp1 tmp2 > POS
+wait
+echo "" >> check
+echo "iteration number: $i" >> check
+mv POS POSCAR_FINAL_RELAX
+
+wait
+# iteration for configuration calculation
+for i in $(seq $config_count)
+do
+cp POSCAR_FINAL_RELAX POSCAR
+wait
+config=`echo $configlist | awk '{print $'"$i"'}'`
+echo "" >> check
+echo "configuration calculation loop" >> check
+echo "label of vacancy (configuration)" $config >> check
+perl -ni -e 'print unless /'"$config"'\n/' POSCAR
+wait
+input=`echo $confignum | awk '{print $'"$i"'}'`
+echo "input:" $input >> check
+num=`awk 'NR==7{print $'"$input"'}' POSCAR`
+echo "(AFTER) number of vacancies:" $num >> check
+num_new=`expr $num - $one`
+echo "(NEW) number of vacancies:" $num_new >> check
+awk 'NR==7{$'"$input"'="'"$num_new"'"}1' POSCAR > postmp
+wait
+mv postmp POSCAR
+wait
+sleep 2
+mpirun -machinefile $PBS_NODEFILE -np $NUMBER $EXE > relax.out
+mkdir $configuration_name-$i
+mv relax.out ./$configuration_name-$i/
+mv WAVECAR ./$configuration_name-$i/
+mv PROCAR ./$configuration_name-$i/
+mv CHGCAR ./$configuration_name-$i/
+mv OUTCAR ./$configuration_name-$i/
+cp POSCAR ./$configuration_name-$i/
+cp CONTCAR ./$configuration_name-$i/
+cp POTCAR ./$configuration_name-$i/
+sleep 2
+done
+
+exit 0
+

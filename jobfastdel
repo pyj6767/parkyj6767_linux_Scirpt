@@ -1,0 +1,66 @@
+#!/bin/sh
+#Script Name : jobdel | Made by Young-Jun Park, yjpark29@postech.ac.kr
+#Descrption
+#: Delete a certain job currently in progress
+#Inspired by Kyung-Yeon Doh's, Hyeon Kim's jobinto Code
+
+if [[ $# -gt 0 ]];then
+   user=$1
+else
+   user=`whoami`
+fi
+
+while :
+do
+echo "-------------------"
+echo " [ $user ]"
+echo "-------------------"
+echo ' # |  Job_Id     S :  Address'
+echo "=== ===========  = :  ==============================================================="
+JOBS=`qstat -u $user -f`
+echo "$JOBS"|awk ' 
+BEGIN{button = 0; Num = 1}
+{
+   if( $1 == "Job" ){printf("%2d |%8d  ",Num , $3)}
+   else if( $1 == "job_state" ){printf("%4s :  ",$3)}
+   else if( $1 == "init_work_dir" ){button=1;printf("%s",$3)}
+   else if( $1 == "request_version" ){button=0;Num=Num + 1;printf("\n")}
+   else if( button == 1 ){printf("%s",$1)}
+}'
+JOBSS=($(echo "$JOBS"|awk '
+BEGIN{button = 0}
+{
+   if( $1 == "Job" ){printf("%4s",$3)}
+   else if( $1 == "request_version" ){button=0;printf("\n")}
+   else if( button == 1 ){printf("%s",$1)}
+}'))
+
+echo "====================================================================================="
+#echo $JOBS
+
+#to go
+LOC=0
+while [ ${LOC} -lt 1 ]
+do
+read -p "(job delete) Write n-th number to delete job.(exit : q)  ex) 3 = 3th job: " LOC
+
+if [ $LOC == "q" ];then
+echo "quit!"
+exit 0
+fi
+
+if [[ $LOC -gt 0 ]];then
+echo 'hi'
+LOC=$(echo "scale=0;$LOC - 1 " | bc -l)
+Jobnumber=`echo ${JOBSS[$LOC]} | awk -F. '{print $1}'`
+echo "Delete Job ID : " $Jobnumber
+qdel $Jobnumber
+LOC=''
+Jobnumber=''
+fi
+done
+
+
+done
+exit 0
+
